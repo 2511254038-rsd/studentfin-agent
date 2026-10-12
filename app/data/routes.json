@@ -1,0 +1,32 @@
+{
+  "routes": [
+    {
+      "id": "bank_wire",
+      "name": "Traditional Bank Wire",
+      "fixed_fee_usd": 25.00,
+      "percent_fee": 0.0,
+      "fx_margin_percent": 2.5,
+      "speed_days": 3,
+      "max_amount_usd": 50000
+    },
+    {
+      "id": "digital_transfer",
+      "name": "Digital Transfer Service",
+      "fixed_fee_usd": 2.00,
+      "percent_fee": 0.6,
+      "fx_margin_percent": 0.5,
+      "speed_days": 1,
+      "max_amount_usd": 10000
+    },
+    {
+      "id": "card_portal",
+      "name": "University Portal Card Payment",
+      "fixed_fee_usd": 0.00,
+      "percent_fee": 2.9,
+      "fx_margin_percent": 1.5,
+      "speed_days": 0,
+      "max_amount_usd": 5000
+    }
+  ],
+  "note": "Fictional providers with simulated fees"
+}

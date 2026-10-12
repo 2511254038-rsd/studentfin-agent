@@ -1,0 +1,10 @@
+{
+  "base": "USD",
+  "mid_market": {
+    "BDT": 122.00,
+    "EUR": 0.92,
+    "GBP": 0.79,
+    "USD": 1.00
+  },
+  "note": "Static simulated rates, not live market data"
+}

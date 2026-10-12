@@ -1,0 +1,11 @@
+{
+  "account_id": "ACC-1001",
+  "owner": "Demo Student",
+  "home_currency": "BDT",
+  "balances": {
+    "BDT": 450000.00,
+    "USD": 1200.00
+  },
+  "daily_transfer_limit_usd": 5000,
+  "verified": true
+}
