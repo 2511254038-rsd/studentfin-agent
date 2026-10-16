@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudentFin Agent</title>
+<style>
+  :root { --bg:#0f1420; --card:#18202f; --line:#2a3550; --text:#e6ebf5; --mute:#8b97b2; --acc:#4f8cff; --ok:#34c27a; --bad:#ef5b5b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:12px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; }
+  .mute { color:var(--mute); }
+  .hidden { display:none !important; }
+  main { display:grid; grid-template-columns:2fr 1fr; gap:16px; padding:16px; height:calc(100vh - 62px); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .left { display:flex; flex-direction:column; min-height:0; }
+  #tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  #tabs button { background:transparent; border:1px solid var(--line); color:var(--text); }
+  #tabs button.active { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .tab { flex:1; min-height:0; overflow-y:auto; }
+  #tab-chat { display:flex; flex-direction:column; }
+  #chat { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-bottom:8px; }
+  .msg { max-width:88%; padding:10px 13px; border-radius:12px; white-space:pre-wrap; }
+  .msg.user { align-self:flex-end; background:var(--acc); color:#fff; }
+  .msg.agent { align-self:flex-start; background:#222c42; white-space:normal; }
+  .msg.agent div:empty { height:6px; }
+  .msg.agent .h { font-weight:700; margin-top:4px; }
+  .msg.system { align-self:center; color:var(--mute); font-size:13px; border:1px dashed var(--line); }
+  button { font:inherit; border:0; border-radius:8px; padding:8px 14px; cursor:pointer; }
+  input, select { padding:9px 11px; border-radius:8px; border:1px solid var(--line); background:#0f1420; color:var(--text); font:inherit; }
+  .row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; align-items:center; }
+  #input { flex:1; }
+  #send { background:var(--acc); color:#fff; }
+  #chips { margin:6px 0 2px; }
+  #chips button { font-size:13px; padding:6px 10px; }
+  .btn-ok { background:var(--ok); color:#06210f; font-weight:600; }
+  .btn-no { background:transparent; border:1px solid var(--line); color:var(--text); }
+  .pending { border:1px solid var(--acc); border-radius:10px; padding:10px; margin-bottom:8px; background:#1b2742; }
+  .pending button { margin-top:6px; margin-right:6px; }
+  #notice { margin-bottom:8px; }
+  .note { padding:8px 12px; border-radius:8px; background:#1f3a2c; color:#bdf0d2; }
+  .note.err { background:#3d2024; color:#f6c1c1; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-bottom:12px; }
+  .stat { background:#101827; border:1px solid var(--line); border-radius:10px; padding:12px; }
+  .stat .lbl { color:var(--mute); font-size:12px; text-transform:uppercase; }
+  .stat .big { font-size:22px; font-weight:700; }
+  .opt { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-top:10px; background:#101827; }
+  .opt.off { opacity:.55; }
+  .optTop { display:flex; gap:8px; align-items:center; margin-bottom:4px; flex-wrap:wrap; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:20px; background:var(--acc); color:#fff; }
+  .badge.ok { background:var(--ok); color:#06210f; }
+  h4 { margin:14px 0 6px; }
+  aside { display:flex; flex-direction:column; gap:12px; overflow-y:auto; min-height:0; }
+  aside h3 { margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); }
+  .mono { font:12px/1.5 ui-monospace,monospace; color:#c4cee6; word-break:break-word; }
+  .line { padding:3px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .allowed { color:var(--ok); } .denied { color:var(--bad); }
+  @media (max-width:800px){ main{grid-template-columns:1fr; height:auto;} #chat{max-height:50vh;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>StudentFin Agent <small class="mute">&nbsp;simulated data only</small></h1>
+  <div><span id="mini" class="mono"></span>&nbsp;&nbsp;<button id="reset" class="btn-no">New chat</button></div>
+</header>
+<main>
+  <section class="card left">
+    <div id="tabs">
+      <button data-tab="chat" class="active">Chat</button>
+      <button data-tab="balance">Balance</button>
+      <button data-tab="compare">Compare routes</button>
+      <button data-tab="send">Send money</button>
+      <button data-tab="fx">Exchange rates</button>
+    </div>
+    <div id="notice"></div>
+    <div id="pending"></div>
+
+    <div id="tab-chat" class="tab">
+      <div id="chat"></div>
+      <div id="chips" class="row"></div>
+      <div class="row">
+        <input id="input" placeholder="e.g. I need to send $3000 for tuition in 2 days" maxlength="1000">
+        <button id="send">Send</button>
+      </div>
+    </div>
+
+    <div id="tab-balance" class="tab hidden"><div id="balance-box"></div></div>
+
+    <div id="tab-compare" class="tab hidden">
+      <div class="row">
+        <input id="cmp-amount" type="number" min="1" step="any" placeholder="Amount (USD)">
+        <input id="cmp-days" type="number" min="0" step="1" placeholder="Days until deadline (optional)">
+        <button id="cmp-go" class="btn-ok">Compare</button>
+      </div>
+      <div id="cmp-out"></div>
+      <div class="row"><button id="cmp-explain" class="btn-no">Ask AI to explain these options</button></div>
+    </div>
+
+    <div id="tab-send" class="tab hidden">
+      <div class="row">
+        <input id="send-amount" type="number" min="1" step="any" placeholder="Amount (USD)">
+        <select id="send-route"></select>
+        <button id="send-go" class="btn-ok">Prepare transfer</button>
+      </div>
+      <p class="mute">Preparing a transfer moves no money. You must press Confirm before anything happens.</p>
+    </div>
+
+    <div id="tab-fx" class="tab hidden"><div id="fx-box"></div></div>
+  </section>
+
+  <aside>
+    <div class="card"><h3>Tool calls (last chat message)</h3><div id="trace" class="mono">none yet</div></div>
+    <div class="card"><h3>Audit log (latest)</h3><div id="audit" class="mono">...</div></div>
+  </aside>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+const money = n => Number(n).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+let current = "chat";
+
+async function api(path, body) {
+  const r = await fetch(path, {
+    method: body ? "POST" : "GET",
+    headers: {"Content-Type": "application/json"},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "Invalid input");
+  return j;
+}
+
+function notice(text, isErr) {
+  const box = $("notice");
+  box.textContent = "";
+  if (!text) return;
+  box.appendChild(el("div", "note" + (isErr ? " err" : ""), text));
+}
+
+// Safe mini-formatter: **bold**, bullets, headings. Never uses innerHTML.
+function rich(parent, text) {
+  text.split("\n").forEach(line => {
+    if (/^\s*-{3,}\s*$/.test(line)) return;
+    let l = line.replace(/^#{1,6}\s*/, "");
+    const row = el("div", l !== line ? "h" : "");
+    l = l.replace(/^\s*[*-]\s+/, "• ");
+    l.split(/(\*\*[^*]+\*\*)/g).forEach(part => {
+      if (part.startsWith("**") && part.endsWith("**")) row.appendChild(el("strong", "", part.slice(2, -2)));
+      else row.appendChild(document.createTextNode(part.replace(/\*/g, "")));
+    });
+    parent.appendChild(row);
+  });
+}
+
+function addMsg(role, text) {
+  const d = el("div", "msg " + role);
+  if (role === "agent") rich(d, text); else d.textContent = text;
+  $("chat").appendChild(d);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return d;
+}
+
+/* ---------- tabs ---------- */
+const loaders = {balance: loadBalance, send: loadSend, fx: loadFx};
+function showTab(name) {
+  current = name;
+  document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
+  $("tab-" + name).classList.remove("hidden");
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  notice("");
+  if (loaders[name]) loaders[name]();
+}
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+/* ---------- shared side panels ---------- */
+async function refreshMini() {
+  const b = await api("/api/balance");
+  $("mini").textContent = Object.entries(b).map(([c, v]) => c + " " + money(v)).join("  |  ");
+}
+
+async function refreshAudit() {
+  const rows = await api("/api/audit");
+  const box = $("audit");
+  box.textContent = "";
+  rows.slice().reverse().forEach(r => {
+    const d = el("div", "line");
+    let text = r.ts.slice(11, 19) + " " + r.event;
+    if (r.tool) text += " " + r.tool;
+    if (r.event === "policy_decision") {
+      text += r.allowed ? " ALLOWED" : " DENIED: " + r.reason;
+      d.classList.add(r.allowed ? "allowed" : "denied");
+    }
+    d.textContent = text;
+    box.appendChild(d);
+  });
+}
+
+async function refreshAll() {
+  await refreshMini();
+  await refreshAudit();
+  if (loaders[current]) loaders[current]();
+}
+
+function renderTrace(trace) {
+  const box = $("trace");
+  box.textContent = "";
+  if (!trace.length) { box.textContent = "no tools used"; return; }
+  trace.forEach(t => {
+    const status = t.result.status || (t.result.error ? "error" : "ok");
+    box.appendChild(el("div", "line", t.tool + "(" + JSON.stringify(t.args) + ") -> " + status));
+  });
+}
+
+function renderPending(pending) {
+  const box = $("pending");
+  box.textContent = "";
+  Object.entries(pending).forEach(([id, a]) => {
+    const d = el("div", "pending");
+    d.appendChild(el("div", "", "Transfer waiting for YOUR approval: $" + a.amount_usd + " via " + a.route_id + " (" + id + ")"));
+    const ok = el("button", "btn-ok", "Confirm transfer");
+    ok.onclick = () => confirmIt(id);
+    const no = el("button", "btn-no", "Cancel");
+    no.onclick = () => cancelIt(id);
+    d.append(ok, no);
+    box.appendChild(d);
+  });
+}
+
+/* ---------- chat ---------- */
+async function send() {
+  const text = $("input").value.trim();
+  if (!text) return;
+  $("input").value = "";
+  addMsg("user", text);
+  const wait = addMsg("system", "thinking...");
+  $("send").disabled = true;
+  try {
+    const data = await api("/api/chat", {message: text});
+    wait.remove();
+    addMsg("agent", data.reply || "(no reply)");
+    renderTrace(data.trace);
+    renderPending(data.pending);
+  } catch (e) {
+    wait.remove();
+    addMsg("system", "Error: " + e.message);
+  }
+  $("send").disabled = false;
+  refreshAll();
+}
+$("send").onclick = send;
+$("input").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+$("reset").onclick = async () => {
+  await api("/api/reset", {});
+  $("chat").textContent = "";
+  renderPending({});
+  renderTrace([]);
+  addMsg("system", "New conversation started.");
+};
+
+/* ---------- confirm / cancel / propose ---------- */
+async function confirmIt(id) {
+  const data = await api("/api/confirm", {pending_id: id});
+  const r = data.result;
+  if (r.status === "completed") notice("Transfer completed: " + r.txn_id + " (BDT " + money(r.debit) + " debited)");
+  else notice("Transfer refused: " + r.reason, true);
+  renderPending(await api("/api/pending"));
+  refreshAll();
+}
+
+async function cancelIt(id) {
+  await api("/api/cancel", {pending_id: id});
+  notice("Transfer cancelled.");
+  renderPending(await api("/api/pending"));
+  refreshAll();
+}
+
+async function propose(amount, routeId) {
+  try {
+    const d = await api("/api/propose", {amount_usd: amount, route_id: routeId});
+    if (d.result.status === "awaiting_user_confirmation") {
+      notice("Request prepared. Review it below and press Confirm to execute (simulated).");
+      renderPending(d.pending);
+    } else {
+      notice("Refused: " + d.result.reason, true);
+    }
+  } catch (e) { notice(e.message, true); }
+  refreshAudit();
+}
+
+/* ---------- balance module ---------- */
+async function loadBalance() {
+  const box = $("balance-box");
+  box.textContent = "";
+  const b = await api("/api/balance");
+  const grid = el("div", "grid");
+  Object.entries(b).forEach(([c, v]) => {
+    const s = el("div", "stat");
+    s.append(el("div", "lbl", c + " balance"), el("div", "big", money(v)));
+    grid.appendChild(s);
+  });
+  box.appendChild(grid);
+  box.appendChild(el("h4", "", "Recent transfers"));
+  const tx = await api("/api/transactions");
+  if (!tx.length) box.appendChild(el("div", "mute", "No transfers yet."));
+  tx.forEach(t => box.appendChild(el("div", "line",
+    t.ts.slice(0, 16).replace("T", " ") + "  " + t.txn_id + "  $" + money(t.amount_usd) +
+    " via " + t.route_id + "  (BDT " + money(t.debit) + ")")));
+}
+
+/* ---------- compare module ---------- */
+$("cmp-go").onclick = async () => {
+  const amount = parseFloat($("cmp-amount").value);
+  const daysRaw = $("cmp-days").value;
+  const out = $("cmp-out");
+  out.textContent = "";
+  if (!(amount > 0)) { notice("Enter an amount greater than 0", true); return; }
+  notice("");
+  const body = {amount_usd: amount};
+  if (daysRaw !== "") body.days_available = parseInt(daysRaw, 10);
+  try {
+    const d = await api("/api/compare", body);
+    d.options.forEach(o => {
+      const card = el("div", "opt" + (o.eligible ? "" : " off"));
+      const top = el("div", "optTop");
+      top.appendChild(el("strong", "", o.name));
+      if (o.route_id === d.cheapest_overall) top.appendChild(el("span", "badge", "Cheapest"));
+      if (d.days_available !== null && o.route_id === d.cheapest_on_time) top.appendChild(el("span", "badge ok", "Best on time"));
+      card.appendChild(top);
+      if (!o.eligible) {
+        card.appendChild(el("div", "mute", o.reason));
+      } else {
+        card.appendChild(el("div", "", "Fees $" + money(o.total_fees_usd) + "  |  Total $" + money(o.total_payable_usd) + "  |  BDT " + money(o.total_payable_bdt)));
+        card.appendChild(el("div", "mute", "Arrives in " + o.speed_days + " day(s)" + (o.meets_deadline === false ? "  -  misses your deadline" : "")));
+        const btn = el("button", "btn-ok", "Send with this route");
+        btn.onclick = () => propose(amount, o.route_id);
+        card.appendChild(btn);
+      }
+      out.appendChild(card);
+    });
+  } catch (e) { notice(e.message, true); }
+  refreshAudit();
+};
+
+/* ---------- send module ---------- */
+async function loadSend() {
+  const sel = $("send-route");
+  if (sel.options.length) return;
+  (await api("/api/routes")).forEach(r => {
+    const o = el("option", "", r.name);
+    o.value = r.id;
+    sel.appendChild(o);
+  });
+}
+$("send-go").onclick = () => {
+  const amount = parseFloat($("send-amount").value);
+  if (!(amount > 0)) { notice("Enter an amount greater than 0", true); return; }
+  propose(amount, $("send-route").value);
+};
+
+/* ---------- fx module ---------- */
+async function loadFx() {
+  const box = $("fx-box");
+  box.textContent = "";
+  const d = await api("/api/fx");
+  const grid = el("div", "grid");
+  Object.entries(d.mid_market).forEach(([c, v]) => {
+    const s = el("div", "stat");
+    s.append(el("div", "lbl", "1 USD in " + c), el("div", "big", String(v)));
+    grid.appendChild(s);
+  });
+  box.append(grid, el("div", "mute", d.note));
+}
+
+/* ---------- hybrid: instant shortcuts + AI prompts ---------- */
+function ask(text) { showTab("chat"); $("input").value = text; send(); }
+
+const chipDefs = [
+  {label: "⚡ My balance", run: () => showTab("balance")},
+  {label: "⚡ Compare routes", run: () => showTab("compare")},
+  {label: "⚡ Send money", run: () => showTab("send")},
+  {label: "🤖 Cheapest way to send $3000 in 2 days?", run: () => ask("I need to send $3000 for tuition in 2 days. What is the cheapest option?")},
+  {label: "🤖 Explain the fees", run: () => ask("Explain in simple words how the fees and exchange-rate margin work on each route.")},
+];
+chipDefs.forEach(c => {
+  const b = el("button", "btn-no", c.label);
+  b.onclick = c.run;
+  $("chips").appendChild(b);
+});
+
+$("cmp-explain").onclick = () => {
+  const amount = parseFloat($("cmp-amount").value);
+  if (!(amount > 0)) { notice("Enter an amount first", true); return; }
+  const days = $("cmp-days").value;
+  ask("Compare the routes for sending $" + amount +
+      (days !== "" ? " with " + days + " day(s) until my deadline" : "") +
+      " and explain which one I should pick and why.");
+};
+
+/* ---------- start ---------- */
+addMsg("system", "Ask me about sending money abroad, or use the tabs above. All data here is simulated.");
+api("/api/pending").then(renderPending);
+refreshMini();
+refreshAudit();
+</script>
+</body>
+</html>
