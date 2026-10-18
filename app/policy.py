@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
@@ -34,6 +35,13 @@ class Decision:
 def _load(name: str) -> dict:
     with open(DATA / f"{name}.json") as f:
         return json.load(f)
+
+
+def _spent_today_usd() -> float:
+    """Sum of simulated transfers recorded in the ledger today (UTC)."""
+    from app import tools  # local import avoids a circular import
+    today = datetime.now(timezone.utc).date().isoformat()
+    return sum(t["amount_usd"] for t in tools._read_ledger() if t["ts"][:10] == today)
 
 
 def check(tool: str, args: dict, confirmed: bool = False) -> Decision:
@@ -78,6 +86,13 @@ def _decide(tool: str, args: dict, confirmed: bool) -> Decision:
         return Decision(False, Tier.BLOCKED, f"Unknown route '{route_id}'")
     if amount > route["max_amount_usd"]:
         return Decision(False, Tier.BLOCKED, "Amount exceeds this route's maximum")
+    limit = account["daily_transfer_limit_usd"]
+    spent = _spent_today_usd()
+    if spent + amount > limit:
+        return Decision(
+            False, Tier.BLOCKED,
+            f"Would exceed the daily limit: ${spent:,.0f} already sent today, limit ${limit:,}",
+        )
     if not confirmed:
         return Decision(False, Tier.TRANSFER, "Needs explicit user confirmation first")
 
