@@ -57,6 +57,23 @@
   .line { padding:3px 0; border-bottom:1px solid var(--line); font-size:13px; }
   .allowed { color:var(--ok); } .denied { color:var(--bad); }
   @media (max-width:800px){ main{grid-template-columns:1fr; height:auto;} #chat{max-height:50vh;} }
+
+  .typing { display:inline-flex; gap:5px; align-items:center; vertical-align:middle; }
+  .typing span { width:7px; height:7px; border-radius:50%; background:var(--acc); animation:bounce 1.2s infinite ease-in-out; }
+  .typing span:nth-child(2) { animation-delay:.15s; }
+  .typing span:nth-child(3) { animation-delay:.3s; }
+  @keyframes bounce { 0%,60%,100% { transform:translateY(0); opacity:.35; } 30% { transform:translateY(-5px); opacity:1; } }
+  .thinking-label { color:var(--mute); font-size:13px; margin-left:10px; }
+  .hist-list { max-height:200px; overflow-y:auto; }
+  .hist { display:flex; justify-content:space-between; align-items:center; gap:6px; padding:6px 8px; border-radius:8px; cursor:pointer; border:1px solid transparent; }
+  .hist:hover { background:#101827; }
+  .hist.active { border-color:var(--acc); }
+  .hist-main { min-width:0; flex:1; }
+  .hist-title { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hist-meta { font-size:11px; color:var(--mute); }
+  .hist-del { background:transparent; color:var(--mute); padding:2px 6px; font-size:12px; }
+  .hist-del:hover { color:var(--bad); }
+  @media (prefers-reduced-motion: reduce) { .typing span { animation:none; opacity:.7; } }
 </style>
 </head>
 <body>
@@ -110,6 +127,7 @@
   </section>
 
   <aside>
+    <div class="card"><h3>Chat history</h3><div id="history" class="hist-list"></div><div class="row"><button id="hist-clear" class="btn-no">Clear all</button></div></div>
     <div class="card"><h3>Tool calls (last chat message)</h3><div id="trace" class="mono">none yet</div></div>
     <div class="card"><h3>Audit log (latest)</h3><div id="audit" class="mono">...</div></div>
   </aside>
@@ -231,14 +249,17 @@ function renderPending(pending) {
 async function send() {
   const text = $("input").value.trim();
   if (!text) return;
+  if (viewOnly) { notice("This is a past chat (view only). Click New chat to continue.", true); return; }
   $("input").value = "";
   addMsg("user", text);
-  const wait = addMsg("system", "thinking...");
+  record("user", text);
+  const wait = addThinking();
   $("send").disabled = true;
   try {
     const data = await api("/api/chat", {message: text});
     wait.remove();
     addMsg("agent", data.reply || "(no reply)");
+    record("agent", data.reply || "(no reply)");
     renderTrace(data.trace);
     renderPending(data.pending);
   } catch (e) {
@@ -252,6 +273,7 @@ $("send").onclick = send;
 $("input").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
 $("reset").onclick = async () => {
   await api("/api/reset", {});
+  startNewConvo();
   $("chat").textContent = "";
   renderPending({});
   renderTrace([]);
@@ -396,6 +418,118 @@ $("cmp-explain").onclick = () => {
       (days !== "" ? " with " + days + " day(s) until my deadline" : "") +
       " and explain which one I should pick and why.");
 };
+
+/* ---------- thinking animation ---------- */
+function addThinking() {
+  const d = el("div", "msg system");
+  const dots = el("span", "typing");
+  for (let i = 0; i < 3; i++) dots.appendChild(el("span"));
+  const label = el("span", "thinking-label", "Thinking...");
+  d.append(dots, label);
+  $("chat").appendChild(d);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  const t1 = setTimeout(() => { label.textContent = "Working on it..."; }, 3000);
+  const t2 = setTimeout(() => { label.textContent = "Still working. The free model can be slow or busy..."; }, 9000);
+  const origRemove = d.remove.bind(d);
+  d.remove = () => { clearTimeout(t1); clearTimeout(t2); origRemove(); };
+  return d;
+}
+
+/* ---------- chat history (stored in this browser only) ---------- */
+const HKEY = "studentfin_chats_v1";
+let convo = {id: String(Date.now()), title: "", ts: Date.now(), msgs: []};
+let viewOnly = false;
+let viewingId = null;
+
+function loadChats() {
+  try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); } catch (e) { return []; }
+}
+function saveChats(list) {
+  try { localStorage.setItem(HKEY, JSON.stringify(list.slice(0, 30))); } catch (e) {}
+}
+
+function record(role, text) {
+  if (viewOnly) return;
+  convo.msgs.push({role: role, text: text});
+  convo.ts = Date.now();
+  if (!convo.title && role === "user") convo.title = text.slice(0, 40);
+  const list = loadChats().filter(c => c.id !== convo.id);
+  list.unshift(convo);
+  saveChats(list);
+  renderHistory();
+}
+
+function renderHistory() {
+  const box = $("history");
+  box.textContent = "";
+  const list = loadChats();
+  if (!list.length) { box.appendChild(el("div", "mute", "No saved chats yet.")); return; }
+  const activeId = viewOnly ? viewingId : convo.id;
+  list.forEach(c => {
+    const row = el("div", "hist" + (c.id === activeId ? " active" : ""));
+    const main = el("div", "hist-main");
+    main.append(
+      el("div", "hist-title", c.title || "(untitled)"),
+      el("div", "hist-meta", new Date(c.ts).toLocaleString([], {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"}))
+    );
+    row.onclick = () => openChat(c.id);
+    const del = el("button", "hist-del", "x");
+    del.title = "Delete this chat";
+    del.onclick = (e) => { e.stopPropagation(); deleteChat(c.id); };
+    row.append(main, del);
+    box.appendChild(row);
+  });
+}
+
+function startNewConvo() {
+  convo = {id: String(Date.now()), title: "", ts: Date.now(), msgs: []};
+  viewOnly = false;
+  viewingId = null;
+  $("input").disabled = false;
+  $("send").disabled = false;
+  renderHistory();
+}
+
+function openChat(id) {
+  const c = loadChats().find(x => x.id === id);
+  if (!c) return;
+  if (!viewOnly && id === convo.id) return;
+  viewOnly = true;
+  viewingId = id;
+  $("chat").textContent = "";
+  c.msgs.forEach(m => addMsg(m.role, m.text));
+  addMsg("system", "Past conversation (view only). Click New chat to start a new one.");
+  $("input").disabled = true;
+  $("send").disabled = true;
+  showTab("chat");
+  renderHistory();
+}
+
+function deleteChat(id) {
+  saveChats(loadChats().filter(c => c.id !== id));
+  if (viewOnly && viewingId === id) {
+    api("/api/reset", {}).catch(() => {});
+    startNewConvo();
+    $("chat").textContent = "";
+    addMsg("system", "Chat deleted. Started a new conversation.");
+  }
+  renderHistory();
+}
+
+$("hist-clear").onclick = () => {
+  if (!confirm("Delete all saved chats from this browser?")) return;
+  saveChats([]);
+  if (viewOnly) {
+    api("/api/reset", {}).catch(() => {});
+    startNewConvo();
+    $("chat").textContent = "";
+  }
+  renderHistory();
+};
+
+renderHistory();
+// A page reload shows an empty chat, so reset the server-side memory to match.
+api("/api/reset", {}).then(() => api("/api/pending")).then(renderPending).catch(() => {});
 
 /* ---------- start ---------- */
 addMsg("system", "Ask me about sending money abroad, or use the tabs above. All data here is simulated.");
