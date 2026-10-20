@@ -225,3 +225,4 @@ app/data/audit.jsonl
 *.swp
 .*.swp
 app/data/users.json
+app/data/profiles/

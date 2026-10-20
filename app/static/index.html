@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StudentFin Agent</title>
 <style>
-  :root { --bg:#0f1420; --card:#18202f; --line:#2a3550; --text:#e6ebf5; --mute:#8b97b2; --acc:#4f8cff; --ok:#34c27a; --bad:#ef5b5b; }
+  :root { --bg:#0f1420; --card:#18202f; --line:#2a3550; --text:#e6ebf5; --mute:#8b97b2; --acc:#4f8cff; --ok:#34c27a; --bad:#ef5b5b; --warn:#e0a43a; }
   * { box-sizing:border-box; }
   body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--text); }
   header { padding:12px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
   header h1 { font-size:18px; margin:0; }
   .mute { color:var(--mute); }
+  .small { font-size:12px; }
   .hidden { display:none !important; }
   main { display:grid; grid-template-columns:2fr 1fr; gap:16px; padding:16px; height:calc(100vh - 62px); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
@@ -36,6 +37,7 @@
   #chips button { font-size:13px; padding:6px 10px; }
   .btn-ok { background:var(--ok); color:#06210f; font-weight:600; }
   .btn-no { background:transparent; border:1px solid var(--line); color:var(--text); }
+  .btn-danger { background:var(--bad); color:#fff; font-weight:600; }
   .pending { border:1px solid var(--acc); border-radius:10px; padding:10px; margin-bottom:8px; background:#1b2742; }
   .pending button { margin-top:6px; margin-right:6px; }
   #notice { margin-bottom:8px; }
@@ -50,14 +52,12 @@
   .optTop { display:flex; gap:8px; align-items:center; margin-bottom:4px; flex-wrap:wrap; }
   .badge { font-size:11px; padding:2px 8px; border-radius:20px; background:var(--acc); color:#fff; }
   .badge.ok { background:var(--ok); color:#06210f; }
-  h4 { margin:14px 0 6px; }
+  h4 { margin:16px 0 6px; }
   aside { display:flex; flex-direction:column; gap:12px; overflow-y:auto; min-height:0; }
   aside h3 { margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); }
   .mono { font:12px/1.5 ui-monospace,monospace; color:#c4cee6; word-break:break-word; }
   .line { padding:3px 0; border-bottom:1px solid var(--line); font-size:13px; }
   .allowed { color:var(--ok); } .denied { color:var(--bad); }
-  @media (max-width:800px){ main{grid-template-columns:1fr; height:auto;} #chat{max-height:50vh;} }
-
   .typing { display:inline-flex; gap:5px; align-items:center; vertical-align:middle; }
   .typing span { width:7px; height:7px; border-radius:50%; background:var(--acc); animation:bounce 1.2s infinite ease-in-out; }
   .typing span:nth-child(2) { animation-delay:.15s; }
@@ -73,8 +73,25 @@
   .hist-meta { font-size:11px; color:var(--mute); }
   .hist-del { background:transparent; color:var(--mute); padding:2px 6px; font-size:12px; }
   .hist-del:hover { color:var(--bad); }
-  @media (prefers-reduced-motion: reduce) { .typing span { animation:none; opacity:.7; } }
-
+  .hero { margin-bottom:10px; }
+  .hero-title { font-size:20px; font-weight:700; }
+  .steps { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 14px; }
+  .step { display:flex; gap:6px; align-items:center; padding:5px 10px; border-radius:20px; border:1px solid var(--line); font-size:13px; color:var(--mute); }
+  .step .num { display:inline-flex; width:18px; height:18px; border-radius:50%; align-items:center; justify-content:center; font-size:11px; background:#101827; }
+  .step.done { color:var(--ok); border-color:var(--ok); }
+  .step.now { color:var(--text); border-color:var(--acc); background:#1b2742; }
+  .card2 { background:#101827; border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+  .card-h { font-weight:700; margin-bottom:6px; }
+  .chip { font-size:12px; padding:2px 10px; border-radius:20px; font-weight:600; }
+  .chip.ok { background:#1f3a2c; color:#bdf0d2; }
+  .chip.warn { background:#3d3320; color:#f3d9a4; }
+  .chip.bad { background:#3d2024; color:#f6c1c1; }
+  .chip.paid { background:#222c42; color:var(--mute); }
+  .inst-line { display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:14px; flex-wrap:wrap; }
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+  .form-grid label, .field { display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--mute); }
+  .inst-row { display:grid; grid-template-columns:2fr 1fr 1fr 1.4fr auto auto; gap:6px; align-items:center; margin-bottom:8px; }
+  .inst-row .check { display:flex; gap:4px; align-items:center; font-size:13px; color:var(--text); }
   .auth-overlay { position:fixed; inset:0; z-index:1000; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto; }
   .auth-card { width:100%; max-width:400px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px; }
   .auth-card h2 { margin:0 0 4px; }
@@ -91,10 +108,44 @@
   .auth-msg { min-height:20px; margin:10px 0; font-size:13px; color:var(--bad); }
   .auth-msg.ok { color:var(--ok); }
   #auth-go { width:100%; padding:10px; }
-  .small { font-size:12px; }
+  @media (max-width:800px){ main{grid-template-columns:1fr; height:auto;} #chat{max-height:50vh;} .inst-row{grid-template-columns:1fr 1fr;} }
+  @media (prefers-reduced-motion: reduce) { .typing span { animation:none; opacity:.7; } }
+
+  body { display:flex; height:100vh; overflow:hidden; }
+  #content { flex:1; min-width:0; display:flex; flex-direction:column; overflow:auto; }
+  #content main { height:auto; flex:1; min-height:0; }
+  #tabs { display:none; }
+  header #reset, header #logout { display:none; }
+  #sidebar { width:260px; flex:none; background:#0b101b; border-right:1px solid var(--line); display:flex; flex-direction:column; padding:12px 10px; gap:8px; transition:width .18s; overflow:hidden; }
+  #sidebar.collapsed { width:64px; }
+  .sb-top { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  .sb-brand { display:flex; align-items:center; gap:8px; font-weight:700; white-space:nowrap; overflow:hidden; }
+  .sb-logo { width:30px; height:30px; flex:none; border-radius:8px; background:var(--acc); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .sb-ic { background:transparent; border:1px solid var(--line); color:var(--text); padding:4px 8px; }
+  .sb-new { display:flex; align-items:center; gap:8px; background:var(--acc); color:#fff; font-weight:600; white-space:nowrap; }
+  .sb-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:transparent; color:var(--text); border:1px solid transparent; white-space:nowrap; padding:8px 10px; }
+  .sb-item:hover { background:#141c2c; }
+  .sb-item.active { background:#1b2742; border-color:var(--acc); }
+  .sb-item .ic, .sb-new .ic { width:20px; text-align:center; flex:none; }
+  .sb-hist { flex:1; min-height:0; display:flex; flex-direction:column; gap:6px; border-top:1px solid var(--line); padding-top:8px; }
+  .sb-h { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); padding:0 6px; }
+  #sidebar .hist-list { flex:1; max-height:none; overflow-y:auto; }
+  .sb-user { border-top:1px solid var(--line); padding-top:8px; }
+  .sb-userbtn { display:flex; align-items:center; gap:10px; width:100%; background:transparent; color:var(--text); text-align:left; padding:6px; border:1px solid transparent; }
+  .sb-userbtn:hover { background:#141c2c; }
+  .avatar { width:34px; height:34px; flex:none; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:#fff; }
+  .sb-uname { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .sb-menu { position:fixed; left:12px; bottom:72px; width:244px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; z-index:60; }
+  .sb-menu .lbl { font-size:12px; color:var(--mute); margin:10px 0 4px; }
+  .swatches { display:flex; gap:6px; flex-wrap:wrap; }
+  .sw { width:22px; height:22px; border-radius:50%; padding:0; border:2px solid transparent; }
+  .sw.sel { border-color:#fff; }
+  #sidebar.collapsed .sb-text, #sidebar.collapsed .sb-hist, #sidebar.collapsed .sb-uname { display:none; }
+  #sidebar.collapsed .sb-top { flex-direction:column; }
 </style>
 </head>
 <body>
+
 <div id="auth" class="auth-overlay">
   <div class="auth-card">
     <h2>StudentFin Agent</h2>
@@ -123,27 +174,68 @@
       <div id="auth-msg" class="auth-msg" role="alert"></div>
       <button type="submit" id="auth-go" class="btn-ok">Log in</button>
     </form>
-    <p class="mute small">Sessions end after 2 hours of inactivity. Passwords are hashed on the server and are never kept in the browser.</p>
+    <p class="mute small">Sessions end after 2 hours of inactivity. Passwords are hashed on the server and never kept in the browser.</p>
   </div>
 </div>
 
+<nav id="sidebar" aria-label="Main navigation">
+  <div class="sb-top">
+    <div class="sb-brand"><span class="sb-logo">SF</span><span class="sb-text">StudentFin</span></div>
+    <button type="button" id="sb-toggle" class="sb-ic" title="Collapse sidebar">&laquo;</button>
+  </div>
+  <button type="button" id="sb-new" class="sb-new"><span class="ic">+</span><span class="sb-text">New chat</span></button>
+  <div class="sb-nav">
+    <button type="button" class="sb-item active" data-go="home"><span class="ic">🏠</span><span class="sb-text">Home</span></button>
+    <button type="button" class="sb-item" data-go="chat"><span class="ic">💬</span><span class="sb-text">Chat</span></button>
+    <button type="button" class="sb-item" data-go="compare"><span class="ic">🧮</span><span class="sb-text">Compare routes</span></button>
+    <button type="button" class="sb-item" data-go="send"><span class="ic">💸</span><span class="sb-text">Send money</span></button>
+    <button type="button" class="sb-item" data-go="balance"><span class="ic">👛</span><span class="sb-text">Balance</span></button>
+    <button type="button" class="sb-item" data-go="fx"><span class="ic">💱</span><span class="sb-text">Exchange rates</span></button>
+    <button type="button" class="sb-item" data-go="profile"><span class="ic">👤</span><span class="sb-text">Profile</span></button>
+  </div>
+  <div class="sb-hist">
+    <div class="sb-h">Chats</div>
+    <div id="history" class="hist-list"></div>
+    <button type="button" id="hist-clear" class="btn-no">Clear all</button>
+  </div>
+  <div class="sb-user">
+    <div id="sb-menu" class="sb-menu hidden">
+      <div class="row"><span class="avatar"></span><div><strong id="sb-menu-name"></strong><div class="mute small" id="sb-menu-sub"></div></div></div>
+      <div class="lbl">Accent color</div><div id="acc-sw" class="swatches"></div>
+      <div class="lbl">Avatar color</div><div id="av-sw" class="swatches"></div>
+      <div class="row"><button type="button" id="sb-go-profile" class="btn-no">Profile &amp; settings</button><button type="button" id="sb-logout" class="btn-no">Log out</button></div>
+    </div>
+    <button type="button" id="sb-userbtn" class="sb-userbtn"><span class="avatar"></span><span class="sb-uname" id="sb-uname"></span></button>
+  </div>
+</nav>
+<div id="content">
 <header>
   <h1>StudentFin Agent <small class="mute">&nbsp;simulated data only</small></h1>
-  <div><span id="mini" class="mono"></span>&nbsp;&nbsp;<span class="mute">Signed in as <strong id="whoami"></strong></span>&nbsp;&nbsp;<button id="reset" class="btn-no">New chat</button> <button id="logout" class="btn-no">Log out</button></div>
+  <div>
+    <span id="mini" class="mono"></span>&nbsp;&nbsp;
+    <span class="mute">Signed in as <strong id="whoami"></strong></span>&nbsp;&nbsp;
+    <button id="reset" class="btn-no">New chat</button>
+    <button id="logout" class="btn-no">Log out</button>
+  </div>
 </header>
+
 <main>
   <section class="card left">
     <div id="tabs">
-      <button data-tab="chat" class="active">Chat</button>
-      <button data-tab="balance">Balance</button>
+      <button data-tab="home" class="active">Home</button>
+      <button data-tab="chat">Chat</button>
       <button data-tab="compare">Compare routes</button>
       <button data-tab="send">Send money</button>
+      <button data-tab="balance">Balance</button>
       <button data-tab="fx">Exchange rates</button>
+      <button data-tab="profile">Profile</button>
     </div>
     <div id="notice"></div>
     <div id="pending"></div>
 
-    <div id="tab-chat" class="tab">
+    <div id="tab-home" class="tab"><div id="home-box"></div></div>
+
+    <div id="tab-chat" class="tab hidden">
       <div id="chat"></div>
       <div id="chips" class="row"></div>
       <div class="row">
@@ -151,8 +243,6 @@
         <button id="send">Send</button>
       </div>
     </div>
-
-    <div id="tab-balance" class="tab hidden"><div id="balance-box"></div></div>
 
     <div id="tab-compare" class="tab hidden">
       <div class="row">
@@ -173,30 +263,80 @@
       <p class="mute">Preparing a transfer moves no money. You must press Confirm before anything happens.</p>
     </div>
 
+    <div id="tab-balance" class="tab hidden"><div id="balance-box"></div></div>
     <div id="tab-fx" class="tab hidden"><div id="fx-box"></div></div>
+
+    <div id="tab-profile" class="tab hidden">
+      <h4>Your student profile</h4>
+      <p class="mute small">Used only to plan your payments. We never ask for passport, ID or bank account numbers.</p>
+      <div class="form-grid">
+        <label>Display name<input id="pf-name" maxlength="40"></label>
+        <label>University<input id="pf-uni" maxlength="80"></label>
+        <label>Home country<select id="pf-home-country"></select></label>
+        <label>Study country<select id="pf-study-country"></select></label>
+        <label>Home currency<select id="pf-home-cur"></select></label>
+        <label>Study currency<select id="pf-study-cur"></select></label>
+        <label>Monthly support from family (USD)<input id="pf-support" type="number" min="0" step="any"></label>
+      </div>
+      <h4>Tuition schedule (up to 6)</h4>
+      <div id="pf-inst"></div>
+      <div class="row">
+        <button id="pf-add" type="button" class="btn-no">+ Add instalment</button>
+        <button id="pf-save" type="button" class="btn-ok">Save profile</button>
+      </div>
+      <h4>Privacy and account</h4>
+      <p class="mute small">Account: <strong id="acct-user"></strong>. You can download everything we hold about you, or delete it. Security audit entries are kept as a record of actions and contain no profile details.</p>
+      <div class="row">
+        <button id="acct-export" type="button" class="btn-no">Download my data</button>
+        <button id="acct-delete-open" type="button" class="btn-no">Delete my account</button>
+      </div>
+      <div id="acct-delete-box" class="pending hidden">
+        <div>This permanently deletes your login, profile and transfers. Enter your password to confirm.</div>
+        <div class="row">
+          <input id="acct-pass" type="password" autocomplete="current-password" maxlength="128" placeholder="Password">
+          <button id="acct-delete-go" type="button" class="btn-danger">Delete everything</button>
+          <button id="acct-delete-cancel" type="button" class="btn-no">Cancel</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <aside>
-    <div class="card"><h3>Chat history</h3><div id="history" class="hist-list"></div><div class="row"><button id="hist-clear" class="btn-no">Clear all</button></div></div>
     <div class="card"><h3>Tool calls (last chat message)</h3><div id="trace" class="mono">none yet</div></div>
+    
     <div class="card"><h3>Audit log (latest)</h3><div id="audit" class="mono">...</div></div>
   </aside>
 </main>
+</div>
+
 <script>
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 const money = n => Number(n).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-let current = "chat";
+const CURRENCIES = ["BDT", "USD", "EUR", "GBP"];
+const HOME_COUNTRIES = ["Bangladesh", "India", "Pakistan", "Nepal", "Sri Lanka", "Other"];
+const STUDY_COUNTRIES = ["United States", "United Kingdom", "Canada", "Australia", "Germany", "Japan", "Malaysia", "Other"];
 
-async function api(path, body) {
+let current = "home";
+let me = null;
+let mode = "login";
+let HKEY = "studentfin_chats_anon";
+let sharedDevice = false;
+let convo = {id: String(Date.now()), title: "", ts: Date.now(), msgs: []};
+let viewOnly = false;
+let viewingId = null;
+
+async function api(path, body, method) {
+  const m = method || (body ? "POST" : "GET");
   const r = await fetch(path, {
-    method: body ? "POST" : "GET",
+    method: m,
     headers: {"Content-Type": "application/json"},
     body: body ? JSON.stringify(body) : undefined,
   });
-  const j = await r.json();
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
   if (r.status === 401 && !path.startsWith("/api/auth/")) onSessionEnded();
-  if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "Invalid input");
+  if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "Invalid input. Please check the fields.");
   return j;
 }
 
@@ -207,7 +347,7 @@ function notice(text, isErr) {
   box.appendChild(el("div", "note" + (isErr ? " err" : ""), text));
 }
 
-// Safe mini-formatter: **bold**, bullets, headings. Never uses innerHTML.
+// Safe mini-formatter: **bold**, bullets, headings. Never builds HTML from strings.
 function rich(parent, text) {
   text.split("\n").forEach(line => {
     if (/^\s*-{3,}\s*$/.test(line)) return;
@@ -230,8 +370,14 @@ function addMsg(role, text) {
   return d;
 }
 
+function fillSelect(id, values) {
+  const s = $(id);
+  s.textContent = "";
+  values.forEach(v => { const o = el("option", "", v); o.value = v; s.appendChild(o); });
+}
+
 /* ---------- tabs ---------- */
-const loaders = {balance: loadBalance, send: loadSend, fx: loadFx};
+const loaders = {home: loadHome, balance: loadBalance, send: loadSend, fx: loadFx, profile: loadProfile};
 function showTab(name) {
   current = name;
   document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
@@ -296,180 +442,6 @@ function renderPending(pending) {
   });
 }
 
-/* ---------- chat ---------- */
-async function send() {
-  const text = $("input").value.trim();
-  if (!text) return;
-  if (viewOnly) { notice("This is a past chat (view only). Click New chat to continue.", true); return; }
-  $("input").value = "";
-  addMsg("user", text);
-  record("user", text);
-  const wait = addThinking();
-  $("send").disabled = true;
-  try {
-    const data = await api("/api/chat", {message: text});
-    wait.remove();
-    addMsg("agent", data.reply || "(no reply)");
-    record("agent", data.reply || "(no reply)");
-    renderTrace(data.trace);
-    renderPending(data.pending);
-  } catch (e) {
-    wait.remove();
-    addMsg("system", "Error: " + e.message);
-  }
-  $("send").disabled = false;
-  refreshAll();
-}
-$("send").onclick = send;
-$("input").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
-$("reset").onclick = async () => {
-  await api("/api/reset", {});
-  startNewConvo();
-  $("chat").textContent = "";
-  renderPending({});
-  renderTrace([]);
-  addMsg("system", "New conversation started.");
-};
-
-/* ---------- confirm / cancel / propose ---------- */
-async function confirmIt(id) {
-  const data = await api("/api/confirm", {pending_id: id});
-  const r = data.result;
-  if (r.status === "completed") notice("Transfer completed: " + r.txn_id + " (BDT " + money(r.debit) + " debited)");
-  else notice("Transfer refused: " + r.reason, true);
-  renderPending(await api("/api/pending"));
-  refreshAll();
-}
-
-async function cancelIt(id) {
-  await api("/api/cancel", {pending_id: id});
-  notice("Transfer cancelled.");
-  renderPending(await api("/api/pending"));
-  refreshAll();
-}
-
-async function propose(amount, routeId) {
-  try {
-    const d = await api("/api/propose", {amount_usd: amount, route_id: routeId});
-    if (d.result.status === "awaiting_user_confirmation") {
-      notice("Request prepared. Review it below and press Confirm to execute (simulated).");
-      renderPending(d.pending);
-    } else {
-      notice("Refused: " + d.result.reason, true);
-    }
-  } catch (e) { notice(e.message, true); }
-  refreshAudit();
-}
-
-/* ---------- balance module ---------- */
-async function loadBalance() {
-  const box = $("balance-box");
-  box.textContent = "";
-  const b = await api("/api/balance");
-  const grid = el("div", "grid");
-  Object.entries(b).forEach(([c, v]) => {
-    const s = el("div", "stat");
-    s.append(el("div", "lbl", c + " balance"), el("div", "big", money(v)));
-    grid.appendChild(s);
-  });
-  box.appendChild(grid);
-  box.appendChild(el("h4", "", "Recent transfers"));
-  const tx = await api("/api/transactions");
-  if (!tx.length) box.appendChild(el("div", "mute", "No transfers yet."));
-  tx.forEach(t => box.appendChild(el("div", "line",
-    t.ts.slice(0, 16).replace("T", " ") + "  " + t.txn_id + "  $" + money(t.amount_usd) +
-    " via " + t.route_id + "  (BDT " + money(t.debit) + ")")));
-}
-
-/* ---------- compare module ---------- */
-$("cmp-go").onclick = async () => {
-  const amount = parseFloat($("cmp-amount").value);
-  const daysRaw = $("cmp-days").value;
-  const out = $("cmp-out");
-  out.textContent = "";
-  if (!(amount > 0)) { notice("Enter an amount greater than 0", true); return; }
-  notice("");
-  const body = {amount_usd: amount};
-  if (daysRaw !== "") body.days_available = parseInt(daysRaw, 10);
-  try {
-    const d = await api("/api/compare", body);
-    d.options.forEach(o => {
-      const card = el("div", "opt" + (o.eligible ? "" : " off"));
-      const top = el("div", "optTop");
-      top.appendChild(el("strong", "", o.name));
-      if (o.route_id === d.cheapest_overall) top.appendChild(el("span", "badge", "Cheapest"));
-      if (d.days_available !== null && o.route_id === d.cheapest_on_time) top.appendChild(el("span", "badge ok", "Best on time"));
-      card.appendChild(top);
-      if (!o.eligible) {
-        card.appendChild(el("div", "mute", o.reason));
-      } else {
-        card.appendChild(el("div", "", "Fees $" + money(o.total_fees_usd) + "  |  Total $" + money(o.total_payable_usd) + "  |  BDT " + money(o.total_payable_bdt)));
-        card.appendChild(el("div", "mute", "Arrives in " + o.speed_days + " day(s)" + (o.meets_deadline === false ? "  -  misses your deadline" : "")));
-        const btn = el("button", "btn-ok", "Send with this route");
-        btn.onclick = () => propose(amount, o.route_id);
-        card.appendChild(btn);
-      }
-      out.appendChild(card);
-    });
-  } catch (e) { notice(e.message, true); }
-  refreshAudit();
-};
-
-/* ---------- send module ---------- */
-async function loadSend() {
-  const sel = $("send-route");
-  if (sel.options.length) return;
-  (await api("/api/routes")).forEach(r => {
-    const o = el("option", "", r.name);
-    o.value = r.id;
-    sel.appendChild(o);
-  });
-}
-$("send-go").onclick = () => {
-  const amount = parseFloat($("send-amount").value);
-  if (!(amount > 0)) { notice("Enter an amount greater than 0", true); return; }
-  propose(amount, $("send-route").value);
-};
-
-/* ---------- fx module ---------- */
-async function loadFx() {
-  const box = $("fx-box");
-  box.textContent = "";
-  const d = await api("/api/fx");
-  const grid = el("div", "grid");
-  Object.entries(d.mid_market).forEach(([c, v]) => {
-    const s = el("div", "stat");
-    s.append(el("div", "lbl", "1 USD in " + c), el("div", "big", String(v)));
-    grid.appendChild(s);
-  });
-  box.append(grid, el("div", "mute", d.note));
-}
-
-/* ---------- hybrid: instant shortcuts + AI prompts ---------- */
-function ask(text) { showTab("chat"); $("input").value = text; send(); }
-
-const chipDefs = [
-  {label: "⚡ My balance", run: () => showTab("balance")},
-  {label: "⚡ Compare routes", run: () => showTab("compare")},
-  {label: "⚡ Send money", run: () => showTab("send")},
-  {label: "🤖 Cheapest way to send $3000 in 2 days?", run: () => ask("I need to send $3000 for tuition in 2 days. What is the cheapest option?")},
-  {label: "🤖 Explain the fees", run: () => ask("Explain in simple words how the fees and exchange-rate margin work on each route.")},
-];
-chipDefs.forEach(c => {
-  const b = el("button", "btn-no", c.label);
-  b.onclick = c.run;
-  $("chips").appendChild(b);
-});
-
-$("cmp-explain").onclick = () => {
-  const amount = parseFloat($("cmp-amount").value);
-  if (!(amount > 0)) { notice("Enter an amount first", true); return; }
-  const days = $("cmp-days").value;
-  ask("Compare the routes for sending $" + amount +
-      (days !== "" ? " with " + days + " day(s) until my deadline" : "") +
-      " and explain which one I should pick and why.");
-};
-
 /* ---------- thinking animation ---------- */
 function addThinking() {
   const d = el("div", "msg system");
@@ -486,13 +458,7 @@ function addThinking() {
   return d;
 }
 
-/* ---------- chat history (stored in this browser only) ---------- */
-let HKEY = "studentfin_chats_anon";
-let sharedDevice = false;
-let convo = {id: String(Date.now()), title: "", ts: Date.now(), msgs: []};
-let viewOnly = false;
-let viewingId = null;
-
+/* ---------- chat history (this browser only, per user) ---------- */
 function loadChats() {
   if (sharedDevice) return [];
   try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); } catch (e) { return []; }
@@ -517,7 +483,7 @@ function renderHistory() {
   const box = $("history");
   box.textContent = "";
   const list = loadChats();
-  if (!list.length) { box.appendChild(el("div", "mute", "No saved chats yet.")); return; }
+  if (!list.length) { box.appendChild(el("div", "mute", sharedDevice ? "History is off on a shared computer." : "No saved chats yet.")); return; }
   const activeId = viewOnly ? viewingId : convo.id;
   list.forEach(c => {
     const row = el("div", "hist" + (c.id === activeId ? " active" : ""));
@@ -581,15 +547,485 @@ $("hist-clear").onclick = () => {
   renderHistory();
 };
 
-renderHistory();
-// A page reload shows an empty chat, so reset the server-side memory to match.
+/* ---------- chat ---------- */
+async function send() {
+  const text = $("input").value.trim();
+  if (!text) return;
+  if (viewOnly) { notice("This is a past chat (view only). Click New chat to continue.", true); return; }
+  $("input").value = "";
+  addMsg("user", text);
+  record("user", text);
+  const wait = addThinking();
+  $("send").disabled = true;
+  try {
+    const data = await api("/api/chat", {message: text});
+    wait.remove();
+    addMsg("agent", data.reply || "(no reply)");
+    record("agent", data.reply || "(no reply)");
+    renderTrace(data.trace);
+    renderPending(data.pending);
+  } catch (e) {
+    wait.remove();
+    addMsg("system", "Error: " + e.message);
+  }
+  $("send").disabled = false;
+  refreshAll();
+}
+$("send").onclick = send;
+$("input").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+$("reset").onclick = async () => {
+  try { await api("/api/reset", {}); } catch (e) {}
+  startNewConvo();
+  $("chat").textContent = "";
+  renderPending({});
+  renderTrace([]);
+  addMsg("system", "New conversation started.");
+};
 
+function ask(text) { showTab("chat"); $("input").value = text; send(); }
 
-/* ---------- start ---------- */
+/* ---------- confirm / cancel / propose ---------- */
+async function confirmIt(id) {
+  try {
+    const data = await api("/api/confirm", {pending_id: id});
+    const r = data.result;
+    if (r.status === "completed") notice("Transfer completed: " + r.txn_id + " (BDT " + money(r.debit) + " debited)");
+    else notice("Transfer refused: " + r.reason, true);
+    renderPending(await api("/api/pending"));
+  } catch (e) { notice(e.message, true); }
+  refreshAll();
+}
+
+async function cancelIt(id) {
+  try {
+    await api("/api/cancel", {pending_id: id});
+    notice("Transfer cancelled.");
+    renderPending(await api("/api/pending"));
+  } catch (e) { notice(e.message, true); }
+  refreshAll();
+}
+
+async function propose(amount, routeId) {
+  try {
+    const d = await api("/api/propose", {amount_usd: amount, route_id: routeId});
+    if (d.result.status === "awaiting_user_confirmation") {
+      notice("Request prepared. Review it below and press Confirm to execute (simulated).");
+      renderPending(d.pending);
+    } else {
+      notice("Refused: " + d.result.reason, true);
+    }
+  } catch (e) { notice(e.message, true); }
+  refreshAll();
+}
+
+/* ---------- home (the plan) ---------- */
+function renderSteps(box, hasProfile, hasPlan, hasPending, hasTx) {
+  const steps = [["1", "Profile", hasProfile], ["2", "Plan", hasPlan], ["3", "Prepare", hasPending || hasTx], ["4", "Confirm", hasTx], ["5", "Receipt", hasTx]];
+  const wrap = el("div", "steps");
+  let marked = false;
+  steps.forEach(s => {
+    const cls = "step" + (s[2] ? " done" : (!marked ? " now" : ""));
+    if (!s[2]) marked = true;
+    const c = el("div", cls);
+    c.append(el("span", "num", s[2] ? "✓" : s[0]), el("span", "", s[1]));
+    wrap.appendChild(c);
+  });
+  box.appendChild(wrap);
+}
+
+async function loadHome() {
+  const box = $("home-box");
+  box.textContent = "";
+  let d, pend, tx;
+  try {
+    [d, pend, tx] = await Promise.all([api("/api/dashboard"), api("/api/pending"), api("/api/transactions")]);
+  } catch (e) { box.appendChild(el("div", "mute", e.message)); return; }
+  const p = d.profile;
+  const hero = el("div", "hero");
+  hero.appendChild(el("div", "hero-title", "Hi " + ((p && p.display_name) || me) + ", here is your money plan"));
+  if (p) hero.appendChild(el("div", "mute", (p.home_country || "?") + " to " + (p.study_country || "?") + "  |  " + p.home_currency + " to " + p.study_currency + (p.university ? "  |  " + p.university : "")));
+  box.appendChild(hero);
+  renderSteps(box, !!p, !!d.next, Object.keys(pend).length > 0, tx.length > 0);
+
+  if (!p) {
+    const c = el("div", "card2");
+    c.appendChild(el("div", "card-h", "Set up your profile (about 2 minutes)"));
+    c.appendChild(el("div", "mute", "Add your countries, currencies and tuition dates, and I will plan your payments around your real deadlines."));
+    const b = el("button", "btn-ok", "Set up profile");
+    b.onclick = () => showTab("profile");
+    const r = el("div", "row"); r.appendChild(b); c.appendChild(r);
+    box.appendChild(c);
+  } else if (d.next) {
+    const n = d.next;
+    const c = el("div", "card2");
+    c.appendChild(el("div", "card-h", "Next payment: " + n.label));
+    const meta = el("div", "optTop");
+    const chipCls = n.days_left <= 7 ? "bad" : (n.days_left <= 14 ? "warn" : "ok");
+    meta.append(
+      el("span", "chip " + chipCls, n.days_left + " day(s) left"),
+      el("span", "", money(n.amount) + " " + n.currency + (n.currency !== "USD" ? "  (about $" + money(n.amount_usd) + ")" : "")),
+      el("span", "mute", "due " + n.due)
+    );
+    c.appendChild(meta);
+    if (n.recommended) {
+      const r = n.recommended;
+      c.appendChild(el("div", "", "Recommended: " + r.name + "  |  fees $" + money(r.total_fees_usd) + "  |  total BDT " + money(r.total_payable_bdt)));
+      c.appendChild(el("div", "mute", "Arrives in " + r.speed_days + " day(s). " + (n.send_now ? "Send today: the usual send-by date (" + n.send_by + ") has already passed. " : "Send by " + n.send_by + " (includes a " + n.safety_days + "-day safety buffer). ") + "Simulated fees and rates."));
+    } else {
+      c.appendChild(el("div", "note err", n.warning));
+    }
+    const row = el("div", "row");
+    const seeAll = el("button", "btn-no", "See all routes");
+    seeAll.onclick = () => {
+      $("cmp-amount").value = n.amount_usd;
+      $("cmp-days").value = n.budget_days;
+      showTab("compare");
+      $("cmp-go").click();
+    };
+    row.appendChild(seeAll);
+    if (n.recommended) {
+      const prep = el("button", "btn-ok", "Prepare this transfer");
+      prep.onclick = () => propose(n.amount_usd, n.recommended.route_id);
+      row.appendChild(prep);
+    }
+    const aiBtn = el("button", "btn-no", "Ask AI about this");
+    aiBtn.onclick = () => ask("Compare the routes for sending $" + n.amount_usd + " with " + n.budget_days + " day(s) until my deadline and explain which one I should pick and why.");
+    row.appendChild(aiBtn);
+    c.appendChild(row);
+    box.appendChild(c);
+  } else {
+    const c = el("div", "card2");
+    c.appendChild(el("div", "card-h", "No upcoming tuition instalment"));
+    c.appendChild(el("div", "mute", "Add your tuition schedule in Profile to get send-by dates."));
+    const b = el("button", "btn-no", "Open profile");
+    b.onclick = () => showTab("profile");
+    const r = el("div", "row"); r.appendChild(b); c.appendChild(r);
+    box.appendChild(c);
+  }
+
+  if (p && d.instalments.length) {
+    box.appendChild(el("h4", "", "Your tuition schedule"));
+    d.instalments.forEach(i => {
+      const line = el("div", "inst-line");
+      const label = i.status === "paid" ? "paid" : (i.status === "overdue" ? "overdue" : (i.days_left + " day(s)"));
+      const cls = i.status === "paid" ? "paid" : (i.status === "overdue" ? "bad" : (i.status === "due_soon" ? "warn" : "ok"));
+      line.append(el("span", "", i.label + "  -  " + i.due), el("span", "", money(i.amount) + " " + i.currency), el("span", "chip " + cls, label));
+      box.appendChild(line);
+    });
+  }
+  if (p && d.monthly_support_usd) box.appendChild(el("div", "mute small", "Monthly support from family: $" + money(d.monthly_support_usd)));
+
+  box.appendChild(el("h4", "", "Balances"));
+  const grid = el("div", "grid");
+  Object.entries(d.balances).forEach(([cur, v]) => {
+    const s = el("div", "stat");
+    s.append(el("div", "lbl", cur), el("div", "big", money(v)));
+    grid.appendChild(s);
+  });
+  box.appendChild(grid);
+}
+
+/* ---------- compare module ---------- */
+$("cmp-go").onclick = async () => {
+  const amount = parseFloat($("cmp-amount").value);
+  const daysRaw = $("cmp-days").value;
+  const out = $("cmp-out");
+  out.textContent = "";
+  if (!(amount > 0)) { notice("Enter an amount greater than 0", true); return; }
+  notice("");
+  const body = {amount_usd: amount};
+  if (daysRaw !== "") body.days_available = parseInt(daysRaw, 10);
+  try {
+    const d = await api("/api/compare", body);
+    d.options.forEach(o => {
+      const card = el("div", "opt" + (o.eligible ? "" : " off"));
+      const top = el("div", "optTop");
+      top.appendChild(el("strong", "", o.name));
+      if (o.route_id === d.cheapest_overall) top.appendChild(el("span", "badge", "Cheapest"));
+      if (d.days_available !== null && o.route_id === d.cheapest_on_time) top.appendChild(el("span", "badge ok", "Best on time"));
+      card.appendChild(top);
+      if (!o.eligible) {
+        card.appendChild(el("div", "mute", o.reason));
+      } else {
+        card.appendChild(el("div", "", "Fees $" + money(o.total_fees_usd) + "  |  Total $" + money(o.total_payable_usd) + "  |  BDT " + money(o.total_payable_bdt)));
+        card.appendChild(el("div", "mute", "Arrives in " + o.speed_days + " day(s)" + (o.meets_deadline === false ? "  -  misses your deadline" : "")));
+        const btn = el("button", "btn-ok", "Send with this route");
+        btn.onclick = () => propose(amount, o.route_id);
+        card.appendChild(btn);
+      }
+      out.appendChild(card);
+    });
+  } catch (e) { notice(e.message, true); }
+  refreshAudit();
+};
+
+$("cmp-explain").onclick = () => {
+  const amount = parseFloat($("cmp-amount").value);
+  if (!(amount > 0)) { notice("Enter an amount first", true); return; }
+  const days = $("cmp-days").value;
+  ask("Compare the routes for sending $" + amount + (days !== "" ? " with " + days + " day(s) until my deadline" : "") + " and explain which one I should pick and why.");
+};
+
+/* ---------- send module ---------- */
+async function loadSend() {
+  const sel = $("send-route");
+  if (sel.options.length) return;
+  try {
+    (await api("/api/routes")).forEach(r => {
+      const o = el("option", "", r.name);
+      o.value = r.id;
+      sel.appendChild(o);
+    });
+  } catch (e) { notice(e.message, true); }
+}
+$("send-go").onclick = () => {
+  const amount = parseFloat($("send-amount").value);
+  if (!(amount > 0)) { notice("Enter an amount greater than 0", true); return; }
+  propose(amount, $("send-route").value);
+};
+
+/* ---------- balance and receipts ---------- */
+async function loadBalance() {
+  const box = $("balance-box");
+  box.textContent = "";
+  try {
+    const b = await api("/api/balance");
+    const grid = el("div", "grid");
+    Object.entries(b).forEach(([c, v]) => {
+      const s = el("div", "stat");
+      s.append(el("div", "lbl", c + " balance"), el("div", "big", money(v)));
+      grid.appendChild(s);
+    });
+    box.appendChild(grid);
+    box.appendChild(el("h4", "", "Receipts (recent transfers)"));
+    const tx = await api("/api/transactions");
+    if (!tx.length) box.appendChild(el("div", "mute", "No transfers yet."));
+    tx.forEach(t => box.appendChild(el("div", "line",
+      t.ts.slice(0, 16).replace("T", " ") + "  " + t.txn_id + "  $" + money(t.amount_usd) +
+      " via " + t.route_id + "  (BDT " + money(t.debit) + ")")));
+  } catch (e) { box.appendChild(el("div", "mute", e.message)); }
+}
+
+/* ---------- exchange rates ---------- */
+async function loadFx() {
+  const box = $("fx-box");
+  box.textContent = "";
+  try {
+    const d = await api("/api/fx");
+    const grid = el("div", "grid");
+    Object.entries(d.mid_market).forEach(([c, v]) => {
+      const s = el("div", "stat");
+      s.append(el("div", "lbl", "1 USD in " + c), el("div", "big", String(v)));
+      grid.appendChild(s);
+    });
+    box.append(grid, el("div", "mute", d.note));
+  } catch (e) { box.appendChild(el("div", "mute", e.message)); }
+}
+
+/* ---------- profile ---------- */
+function addInstRow(v) {
+  if ($("pf-inst").children.length >= 6) { notice("You can add up to 6 instalments.", true); return; }
+  const d = v || {label: "", amount: "", currency: "USD", due: "", paid: false};
+  const row = el("div", "inst-row");
+  const label = el("input"); label.placeholder = "Label (e.g. Spring instalment)"; label.maxLength = 40; label.value = d.label;
+  const amount = el("input"); amount.type = "number"; amount.min = "0"; amount.step = "any"; amount.placeholder = "Amount"; amount.value = d.amount;
+  const cur = el("select");
+  CURRENCIES.forEach(c => { const o = el("option", "", c); o.value = c; cur.appendChild(o); });
+  cur.value = d.currency;
+  const due = el("input"); due.type = "date"; due.value = d.due;
+  const paidLbl = el("label", "check");
+  const paid = el("input"); paid.type = "checkbox"; paid.checked = !!d.paid;
+  paidLbl.append(paid, document.createTextNode(" Paid"));
+  const del = el("button", "btn-no", "Remove"); del.type = "button";
+  del.onclick = () => row.remove();
+  row.append(label, amount, cur, due, paidLbl, del);
+  row.getValues = () => ({label: label.value.trim(), amount: parseFloat(amount.value), currency: cur.value, due: due.value, paid: paid.checked});
+  $("pf-inst").appendChild(row);
+}
+
+function collectProfile() {
+  const insts = Array.from($("pf-inst").children).map(r => r.getValues());
+  insts.forEach(i => {
+    if (!i.label) throw new Error("Each instalment needs a label.");
+    if (!(i.amount > 0)) throw new Error("Each instalment needs an amount above 0.");
+    if (!i.due) throw new Error("Each instalment needs a due date.");
+  });
+  const support = parseFloat($("pf-support").value);
+  return {
+    display_name: $("pf-name").value.trim(),
+    university: $("pf-uni").value.trim(),
+    home_country: $("pf-home-country").value,
+    study_country: $("pf-study-country").value,
+    home_currency: $("pf-home-cur").value,
+    study_currency: $("pf-study-cur").value,
+    monthly_support_usd: support > 0 ? support : 0,
+    instalments: insts,
+  };
+}
+
+async function loadProfile() {
+  $("acct-user").textContent = me || "";
+  let p = null;
+  try { p = (await api("/api/profile")).profile; } catch (e) { notice(e.message, true); return; }
+  p = p || {};
+  $("pf-name").value = p.display_name || "";
+  $("pf-uni").value = p.university || "";
+  $("pf-home-country").value = p.home_country || "Bangladesh";
+  $("pf-study-country").value = p.study_country || STUDY_COUNTRIES[0];
+  $("pf-home-cur").value = p.home_currency || "BDT";
+  $("pf-study-cur").value = p.study_currency || "USD";
+  $("pf-support").value = p.monthly_support_usd || "";
+  $("pf-inst").textContent = "";
+  (p.instalments || []).forEach(i => addInstRow({label: i.label, amount: i.amount, currency: i.currency, due: i.due, paid: i.paid}));
+}
+
+$("pf-add").onclick = () => addInstRow();
+$("pf-save").onclick = async () => {
+  try {
+    await api("/api/profile", collectProfile(), "PUT");
+    notice("Profile saved. Your Home plan is updated.");
+    refreshAudit();
+  } catch (e) { notice(e.message, true); }
+};
+
+$("acct-export").onclick = async () => {
+  try {
+    const r = await fetch("/api/me/export");
+    if (!r.ok) { notice("Could not export your data.", true); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "studentfin-my-data.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    notice("Your data was downloaded.");
+  } catch (e) { notice("Could not export your data.", true); }
+};
+$("acct-delete-open").onclick = () => { $("acct-delete-box").classList.remove("hidden"); $("acct-pass").focus(); };
+$("acct-delete-cancel").onclick = () => { $("acct-delete-box").classList.add("hidden"); $("acct-pass").value = ""; };
+$("acct-delete-go").onclick = async () => {
+  const pw = $("acct-pass").value;
+  if (!pw) { notice("Enter your password to confirm.", true); return; }
+  try { await api("/api/me/delete", {password: pw}); } catch (e) { notice(e.message, true); return; }
+  try { localStorage.removeItem(HKEY); } catch (e) {}
+  $("acct-pass").value = "";
+  wipeScreen();
+  showLogin("Your account and data were deleted.");
+};
+
+/* ---------- chat shortcuts ---------- */
+const chipDefs = [
+  {label: "⚡ Home plan", run: () => showTab("home")},
+  {label: "⚡ Compare routes", run: () => showTab("compare")},
+  {label: "🤖 Cheapest way to send $3000 in 2 days?", run: () => ask("I need to send $3000 for tuition in 2 days. What is the cheapest option?")},
+  {label: "🤖 Explain the fees", run: () => ask("Explain in simple words how the fees and exchange-rate margin work on each route.")},
+];
+chipDefs.forEach(c => {
+  const b = el("button", "btn-no", c.label);
+  b.onclick = c.run;
+  $("chips").appendChild(b);
+});
+
+/* ---------- sidebar, avatar and personal preferences ---------- */
+const SB_KEY = "sf_sidebar_collapsed";
+const PALETTE = ["#4f8cff", "#34c27a", "#e0a43a", "#ef5b5b", "#a06bff", "#14b8c4"];
+const HEX = /^#[0-9a-fA-F]{6}$/;
+let sbName = "";
+
+function prefsKey() { return "sf_prefs_" + (me || "anon"); }
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(prefsKey()) || "{}");
+    return {
+      accent: HEX.test(p.accent || "") ? p.accent : PALETTE[0],
+      avatar: HEX.test(p.avatar || "") ? p.avatar : null,
+    };
+  } catch (e) { return {accent: PALETTE[0], avatar: null}; }
+}
+function savePrefs(p) { try { localStorage.setItem(prefsKey(), JSON.stringify(p)); } catch (e) {} }
+function hashColor(str) { let h = 0; for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; }
+function initials(name) {
+  const parts = name.trim().split(/[\s_]+/).filter(Boolean);
+  const a = parts.length ? parts[0][0] : "?";
+  const b = parts.length > 1 ? parts[1][0] : "";
+  return (a + b).toUpperCase();
+}
+function applyPrefs() {
+  const p = loadPrefs();
+  document.documentElement.style.setProperty("--acc", p.accent);
+  const color = p.avatar || hashColor(me || "x");
+  document.querySelectorAll(".avatar").forEach(a => { a.style.background = color; a.textContent = initials(sbName || me || "?"); });
+  document.querySelectorAll("#acc-sw .sw").forEach(b => b.classList.toggle("sel", b.dataset.c === p.accent));
+  document.querySelectorAll("#av-sw .sw").forEach(b => b.classList.toggle("sel", b.dataset.c === color));
+}
+function buildSwatches(boxId, key) {
+  const box = $(boxId);
+  box.textContent = "";
+  PALETTE.forEach(c => {
+    const b = el("button", "sw");
+    b.type = "button";
+    b.dataset.c = c;
+    b.style.background = c;
+    b.title = c;
+    b.onclick = () => { const p = loadPrefs(); p[key] = c; savePrefs(p); applyPrefs(); };
+    box.appendChild(b);
+  });
+}
+async function renderUserCard() {
+  sbName = me || "";
+  $("sb-uname").textContent = sbName;
+  $("sb-menu-name").textContent = sbName;
+  $("sb-menu-sub").textContent = me ? "@" + me : "";
+  applyPrefs();
+  try {
+    const p = (await api("/api/profile")).profile;
+    if (p && p.display_name) {
+      sbName = p.display_name;
+      $("sb-uname").textContent = p.display_name;
+      $("sb-menu-name").textContent = p.display_name;
+      applyPrefs();
+    }
+  } catch (e) {}
+}
+
+function syncSidebar() {
+  document.querySelectorAll(".sb-item").forEach(b => b.classList.toggle("active", b.dataset.go === current));
+}
+const _origShowTab = showTab;
+showTab = function (name) { _origShowTab(name); syncSidebar(); };
+const _origEnterApp = enterApp;
+enterApp = async function (user) { await _origEnterApp(user); renderUserCard(); syncSidebar(); };
+
+function setCollapsed(c) {
+  $("sidebar").classList.toggle("collapsed", c);
+  $("sb-toggle").textContent = c ? "»" : "«";
+  $("sb-toggle").title = c ? "Expand sidebar" : "Collapse sidebar";
+  try { localStorage.setItem(SB_KEY, c ? "1" : "0"); } catch (e) {}
+}
+$("sb-toggle").onclick = () => setCollapsed(!$("sidebar").classList.contains("collapsed"));
+let startCollapsed = window.innerWidth < 800;
+try { const v = localStorage.getItem(SB_KEY); if (v !== null) startCollapsed = v === "1"; } catch (e) {}
+setCollapsed(startCollapsed);
+
+document.querySelectorAll(".sb-item").forEach(b => b.onclick = () => showTab(b.dataset.go));
+$("sb-new").onclick = () => { $("reset").click(); showTab("chat"); };
+$("sb-userbtn").onclick = (e) => { e.stopPropagation(); $("sb-menu").classList.toggle("hidden"); };
+document.addEventListener("click", (e) => {
+  const m = $("sb-menu");
+  if (!m.classList.contains("hidden") && !m.contains(e.target)) m.classList.add("hidden");
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("sb-menu").classList.add("hidden"); });
+$("sb-go-profile").onclick = () => { $("sb-menu").classList.add("hidden"); showTab("profile"); };
+$("sb-logout").onclick = () => { $("sb-menu").classList.add("hidden"); $("logout").click(); };
+$("pf-save").addEventListener("click", () => setTimeout(renderUserCard, 900));
+buildSwatches("acc-sw", "accent");
+buildSwatches("av-sw", "avatar");
+applyPrefs();
+
 /* ---------- authentication ---------- */
-let me = null;
-let mode = "login";
-
 function authMsg(text, isErr) {
   const m = $("auth-msg");
   m.textContent = text || "";
@@ -633,13 +1069,10 @@ function setMode(m) {
 
 function wipeScreen() {
   me = null;
-  ["chat", "pending", "trace", "audit", "balance-box", "cmp-out", "fx-box"].forEach(id => { $(id).textContent = ""; });
-  $("mini").textContent = "";
-  $("whoami").textContent = "";
-  $("input").value = "";
-  $("cmp-amount").value = "";
-  $("cmp-days").value = "";
-  $("send-amount").value = "";
+  ["chat", "pending", "trace", "audit", "balance-box", "cmp-out", "fx-box", "home-box", "pf-inst"].forEach(id => { $(id).textContent = ""; });
+  ["mini", "whoami", "acct-user"].forEach(id => { $(id).textContent = ""; });
+  ["input", "cmp-amount", "cmp-days", "send-amount", "pf-name", "pf-uni", "pf-support", "acct-pass"].forEach(id => { $(id).value = ""; });
+  $("acct-delete-box").classList.add("hidden");
   notice("");
 }
 
@@ -669,12 +1102,13 @@ async function enterApp(user) {
   renderPending({});
   renderTrace([]);
   addMsg("system", "Welcome, " + user + ". Ask me about sending money abroad, or use the tabs above. All data here is simulated.");
-  showTab("chat");
   try {
     await api("/api/reset", {});
     renderPending(await api("/api/pending"));
   } catch (e) {}
-  refreshAll().catch(() => {});
+  showTab("home");
+  refreshMini().catch(() => {});
+  refreshAudit().catch(() => {});
 }
 
 async function submitAuth(e) {
@@ -722,7 +1156,12 @@ $("logout").onclick = async () => {
 };
 
 async function init() {
+  fillSelect("pf-home-country", HOME_COUNTRIES);
+  fillSelect("pf-study-country", STUDY_COUNTRIES);
+  fillSelect("pf-home-cur", CURRENCIES);
+  fillSelect("pf-study-cur", CURRENCIES);
   setMode("login");
+  renderHistory();
   try { sharedDevice = sessionStorage.getItem("sf_shared") === "1"; } catch (e) {}
   try {
     const d = await api("/api/auth/me");

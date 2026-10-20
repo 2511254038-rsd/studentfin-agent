@@ -246,3 +246,80 @@ def propose(body: ProposeIn, user: str = Depends(auth.require_user)):
     with userctx.as_user(user):
         result = agent.propose_transfer(body.amount_usd, body.route_id)
         return {"result": result, "pending": agent.get_pending()}
+    
+
+
+
+# ---------------- Student profile and account ----------------
+from datetime import datetime, timezone
+
+from fastapi.responses import JSONResponse
+
+from app import student_profile as profile_store
+
+
+class DeleteIn(BaseModel):
+    password: str = Field(max_length=200)
+
+
+@app.get("/api/profile")
+def get_profile(user: str = Depends(auth.require_user)):
+    return {"profile": profile_store.load(user)}
+
+
+@app.put("/api/profile")
+def put_profile(body: profile_store.Profile, user: str = Depends(auth.require_user)):
+    profile_store.save(user, body)
+    with userctx.as_user(user):
+        audit.log("profile_updated", instalments=len(body.instalments))   # never log the values
+    return {"profile": body.model_dump(mode="json")}
+
+
+@app.get("/api/dashboard")
+def get_dashboard(user: str = Depends(auth.require_user)):
+    with userctx.as_user(user):
+        balances = tools.current_balances()
+    return profile_store.build_dashboard(profile_store.load(user), balances)
+
+
+@app.get("/api/me/export")
+def export_me(user: str = Depends(auth.require_user)):
+    with userctx.as_user(user):
+        transfers = tools._read_ledger()
+        audit.log("data_exported")
+    data = {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "username": user,
+        "profile": profile_store.load(user),
+        "transfers": transfers,
+        "note": "Simulated data only. Security audit entries are kept separately.",
+    }
+    return JSONResponse(
+        data, headers={"Content-Disposition": 'attachment; filename="studentfin-my-data.json"'}
+    )
+
+
+@app.post("/api/me/delete")
+def delete_me(body: DeleteIn, response: Response, user: str = Depends(auth.require_user)):
+    try:
+        token = auth.login(user, body.password)      # re-checks the password, with lockout
+    except PermissionError as e:
+        raise HTTPException(429, str(e))
+    except ValueError:
+        raise HTTPException(403, "Wrong password")
+    auth.logout(token)
+    with auth._lock:
+        users = auth._load_users()
+        users.pop(user, None)
+        auth._save_users(users)
+        for digest, s in list(auth._sessions.items()):
+            if s["user"] == user:
+                auth._sessions.pop(digest, None)
+    with userctx.as_user(user):
+        tools._ledger_path().unlink(missing_ok=True)
+        audit.log("account_deleted")
+    profile_store.delete(user)
+    agent._STATES.pop(user, None)
+    _chat_times.pop(user, None)
+    response.delete_cookie(auth.COOKIE_NAME, path="/")
+    return {"status": "deleted"}

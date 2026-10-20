@@ -19,3 +19,8 @@ def test_password_never_stored_in_browser_storage():
     assert "localStorage.setItem(HKEY" in HTML
     assert 'setItem("pass' not in HTML
     assert 'sessionStorage.setItem("sf_shared"' in HTML
+
+
+def test_profile_and_home_screens_present():
+    for marker in ('id="tab-home"', 'id="tab-profile"', 'id="acct-export"', 'id="acct-delete-go"'):
+        assert marker in HTML, marker
