@@ -1,0 +1,710 @@
+[
+  {
+    "label": "Anonymous visitor cannot read a balance",
+    "request": "GET /api/balance",
+    "payload": null,
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Please log in"
+    }
+  },
+  {
+    "label": "Anonymous visitor cannot confirm a transfer",
+    "request": "POST /api/confirm",
+    "payload": {
+      "pending_id": "PEND-FAKE"
+    },
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Please log in"
+    }
+  },
+  {
+    "label": "Weak password is rejected at registration",
+    "request": "POST /api/auth/register",
+    "payload": {
+      "username": "weak_user",
+      "password": "***"
+    },
+    "status": 400,
+    "expected": 400,
+    "body": {
+      "detail": "Password must be at least 10 characters"
+    }
+  },
+  {
+    "label": "Register a demo student",
+    "request": "POST /api/auth/register",
+    "payload": {
+      "username": "demo_student",
+      "password": "***"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "user": "demo_student"
+    }
+  },
+  {
+    "label": "Save the student profile",
+    "request": "PUT /api/profile",
+    "payload": {
+      "display_name": "Demo Student",
+      "university": "Demo University",
+      "home_country": "Bangladesh",
+      "study_country": "United States",
+      "home_currency": "BDT",
+      "study_currency": "USD",
+      "monthly_support_usd": 400,
+      "instalments": [
+        {
+          "label": "Spring tuition",
+          "amount": 3000,
+          "currency": "USD",
+          "due": "2026-11-09",
+          "paid": false
+        }
+      ]
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "profile": {
+        "display_name": "Demo Student",
+        "university": "Demo University",
+        "home_country": "Bangladesh",
+        "study_country": "United States",
+        "home_currency": "BDT",
+        "study_currency": "USD",
+        "monthly_support_usd": 400.0,
+        "instalments": [
+          {
+            "label": "Spring tuition",
+            "amount": 3000.0,
+            "currency": "USD",
+            "due": "2026-11-09",
+            "paid": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "label": "Profile refuses a passport number",
+    "request": "PUT /api/profile",
+    "payload": {
+      "display_name": "Demo Student",
+      "university": "Demo University",
+      "home_country": "Bangladesh",
+      "study_country": "United States",
+      "home_currency": "BDT",
+      "study_currency": "USD",
+      "monthly_support_usd": 400,
+      "instalments": [
+        {
+          "label": "Spring tuition",
+          "amount": 3000,
+          "currency": "USD",
+          "due": "2026-11-09",
+          "paid": false
+        }
+      ],
+      "passport_number": "A1234567"
+    },
+    "status": 422,
+    "expected": 422,
+    "body": {
+      "detail": [
+        {
+          "type": "extra_forbidden",
+          "loc": [
+            "body",
+            "passport_number"
+          ],
+          "msg": "Extra inputs are not permitted",
+          "input": "A1234567"
+        }
+      ]
+    }
+  },
+  {
+    "label": "Dashboard plans the next payment",
+    "request": "GET /api/dashboard",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "profile": {
+        "display_name": "Demo Student",
+        "university": "Demo University",
+        "home_country": "Bangladesh",
+        "study_country": "United States",
+        "home_currency": "BDT",
+        "study_currency": "USD",
+        "monthly_support_usd": 400.0,
+        "instalments": [
+          {
+            "label": "Spring tuition",
+            "amount": 3000.0,
+            "currency": "USD",
+            "due": "2026-11-09",
+            "paid": false
+          }
+        ]
+      },
+      "balances": {
+        "BDT": 450000.0,
+        "USD": 1200.0
+      },
+      "monthly_support_usd": 400.0,
+      "instalments": [
+        {
+          "label": "Spring tuition",
+          "amount": 3000.0,
+          "currency": "USD",
+          "due": "2026-11-09",
+          "paid": false,
+          "days_left": 20,
+          "amount_usd": 3000.0,
+          "status": "upcoming"
+        }
+      ],
+      "next": {
+        "label": "Spring tuition",
+        "due": "2026-11-09",
+        "days_left": 20,
+        "amount": 3000.0,
+        "currency": "USD",
+        "amount_usd": 3000.0,
+        "budget_days": 17,
+        "safety_days": 3,
+        "recommended": {
+          "route_id": "digital_transfer",
+          "name": "Digital Transfer Service",
+          "eligible": true,
+          "speed_days": 1,
+          "total_fees_usd": 35.0,
+          "total_payable_usd": 3035.0,
+          "total_payable_bdt": 370270.0,
+          "meets_deadline": true
+        },
+        "send_by": "2026-11-05",
+        "warning": null,
+        "send_now": false
+      }
+    }
+  },
+  {
+    "label": "Compare routes for $3,000 with 17 days of budget",
+    "request": "POST /api/compare",
+    "payload": {
+      "amount_usd": 3000,
+      "days_available": 17
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "amount_usd": 3000.0,
+      "days_available": 17,
+      "options": [
+        {
+          "route_id": "bank_wire",
+          "name": "Traditional Bank Wire",
+          "eligible": true,
+          "speed_days": 3,
+          "total_fees_usd": 100.0,
+          "total_payable_usd": 3100.0,
+          "total_payable_bdt": 378200.0,
+          "meets_deadline": true
+        },
+        {
+          "route_id": "digital_transfer",
+          "name": "Digital Transfer Service",
+          "eligible": true,
+          "speed_days": 1,
+          "total_fees_usd": 35.0,
+          "total_payable_usd": 3035.0,
+          "total_payable_bdt": 370270.0,
+          "meets_deadline": true
+        },
+        {
+          "route_id": "card_portal",
+          "name": "University Portal Card Payment",
+          "eligible": true,
+          "speed_days": 0,
+          "total_fees_usd": 132.0,
+          "total_payable_usd": 3132.0,
+          "total_payable_bdt": 382104.0,
+          "meets_deadline": true
+        }
+      ],
+      "cheapest_overall": "digital_transfer",
+      "cheapest_on_time": "digital_transfer"
+    }
+  },
+  {
+    "label": "Balance before any transfer",
+    "request": "GET /api/balance",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "BDT": 450000.0,
+      "USD": 1200.0
+    }
+  },
+  {
+    "label": "Prepare a $3,000 transfer (no money moves yet)",
+    "request": "POST /api/propose",
+    "payload": {
+      "amount_usd": 3000,
+      "route_id": "digital_transfer"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "awaiting_user_confirmation",
+        "pending_id": "PEND-B1A58D",
+        "quote": {
+          "route_id": "digital_transfer",
+          "name": "Digital Transfer Service",
+          "eligible": true,
+          "speed_days": 1,
+          "total_fees_usd": 35.0,
+          "total_payable_usd": 3035.0,
+          "total_payable_bdt": 370270.0,
+          "meets_deadline": null
+        }
+      },
+      "pending": {
+        "PEND-B1A58D": {
+          "amount_usd": 3000.0,
+          "route_id": "digital_transfer"
+        }
+      }
+    }
+  },
+  {
+    "label": "Balance unchanged while the request is pending",
+    "request": "GET /api/balance",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "BDT": 450000.0,
+      "USD": 1200.0
+    }
+  },
+  {
+    "label": "Owner confirms the transfer",
+    "request": "POST /api/confirm",
+    "payload": {
+      "pending_id": "PEND-B1A58D"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "completed",
+        "txn_id": "TXN-42DDFCA8",
+        "ts": "2026-10-20T11:57:27.903241+00:00",
+        "route_id": "digital_transfer",
+        "amount_usd": 3000.0,
+        "fees_usd": 35.0,
+        "currency": "BDT",
+        "debit": 370270.0
+      },
+      "balances": {
+        "BDT": 79730.0,
+        "USD": 1200.0
+      }
+    }
+  },
+  {
+    "label": "Balance after the confirmed transfer",
+    "request": "GET /api/balance",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "BDT": 79730.0,
+      "USD": 1200.0
+    }
+  },
+  {
+    "label": "Confirming the same request again is refused",
+    "request": "POST /api/confirm",
+    "payload": {
+      "pending_id": "PEND-B1A58D"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "refused",
+        "reason": "Unknown or expired pending id"
+      },
+      "balances": {
+        "BDT": 79730.0,
+        "USD": 1200.0
+      }
+    }
+  },
+  {
+    "label": "A second $3,000 the same day is refused (cumulative daily limit)",
+    "request": "POST /api/propose",
+    "payload": {
+      "amount_usd": 3000,
+      "route_id": "digital_transfer"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "refused",
+        "reason": "Would exceed the daily limit: $3,000 already sent today, limit $5,000"
+      },
+      "pending": {}
+    }
+  },
+  {
+    "label": "A $9,000 transfer is refused",
+    "request": "POST /api/propose",
+    "payload": {
+      "amount_usd": 9000,
+      "route_id": "digital_transfer"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "refused",
+        "reason": "Amount exceeds daily limit of $5,000"
+      },
+      "pending": {}
+    }
+  },
+  {
+    "label": "An unknown route is refused",
+    "request": "POST /api/propose",
+    "payload": {
+      "amount_usd": 100,
+      "route_id": "invented_route"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "refused",
+        "reason": "Unknown route 'invented_route'"
+      },
+      "pending": {}
+    }
+  },
+  {
+    "label": "Prepare a $500 transfer",
+    "request": "POST /api/propose",
+    "payload": {
+      "amount_usd": 500,
+      "route_id": "digital_transfer"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "awaiting_user_confirmation",
+        "pending_id": "PEND-4FEA87",
+        "quote": {
+          "route_id": "digital_transfer",
+          "name": "Digital Transfer Service",
+          "eligible": true,
+          "speed_days": 1,
+          "total_fees_usd": 7.5,
+          "total_payable_usd": 507.5,
+          "total_payable_bdt": 61915.0,
+          "meets_deadline": null
+        }
+      },
+      "pending": {
+        "PEND-4FEA87": {
+          "amount_usd": 500.0,
+          "route_id": "digital_transfer"
+        }
+      }
+    }
+  },
+  {
+    "label": "Register a second student",
+    "request": "POST /api/auth/register",
+    "payload": {
+      "username": "student_two",
+      "password": "***"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "user": "student_two"
+    }
+  },
+  {
+    "label": "Second student sees no pending requests",
+    "request": "GET /api/pending",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {}
+  },
+  {
+    "label": "Second student has an untouched balance",
+    "request": "GET /api/balance",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "BDT": 450000.0,
+      "USD": 1200.0
+    }
+  },
+  {
+    "label": "Second student cannot confirm the first student's request",
+    "request": "POST /api/confirm",
+    "payload": {
+      "pending_id": "PEND-4FEA87"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "result": {
+        "status": "refused",
+        "reason": "Unknown or expired pending id"
+      },
+      "balances": {
+        "BDT": 450000.0,
+        "USD": 1200.0
+      }
+    }
+  },
+  {
+    "label": "Second student's audit view holds only their own events",
+    "request": "GET /api/audit",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": [
+      {
+        "ts": "2026-10-20T11:57:27.947627+00:00",
+        "event": "user_registered",
+        "user": "student_two"
+      },
+      {
+        "ts": "2026-10-20T11:57:27.979314+00:00",
+        "event": "login_ok",
+        "user": "student_two"
+      }
+    ]
+  },
+  {
+    "label": "Owner cancels the $500 request",
+    "request": "POST /api/cancel",
+    "payload": {
+      "pending_id": "PEND-4FEA87"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "status": "cancelled"
+    }
+  },
+  {
+    "label": "Register a student to test lockout",
+    "request": "POST /api/auth/register",
+    "payload": {
+      "username": "lockout_user",
+      "password": "***"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "user": "lockout_user"
+    }
+  },
+  {
+    "label": "Wrong password, attempt 1",
+    "request": "POST /api/auth/login",
+    "payload": {
+      "username": "lockout_user",
+      "password": "***"
+    },
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Invalid username or password"
+    }
+  },
+  {
+    "label": "Wrong password, attempt 2",
+    "request": "POST /api/auth/login",
+    "payload": {
+      "username": "lockout_user",
+      "password": "***"
+    },
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Invalid username or password"
+    }
+  },
+  {
+    "label": "Wrong password, attempt 3",
+    "request": "POST /api/auth/login",
+    "payload": {
+      "username": "lockout_user",
+      "password": "***"
+    },
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Invalid username or password"
+    }
+  },
+  {
+    "label": "Wrong password, attempt 4",
+    "request": "POST /api/auth/login",
+    "payload": {
+      "username": "lockout_user",
+      "password": "***"
+    },
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Invalid username or password"
+    }
+  },
+  {
+    "label": "Wrong password, attempt 5",
+    "request": "POST /api/auth/login",
+    "payload": {
+      "username": "lockout_user",
+      "password": "***"
+    },
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Invalid username or password"
+    }
+  },
+  {
+    "label": "Correct password is refused while the account is locked",
+    "request": "POST /api/auth/login",
+    "payload": {
+      "username": "lockout_user",
+      "password": "***"
+    },
+    "status": 429,
+    "expected": 429,
+    "body": {
+      "detail": "Too many failed attempts. Try again in a few minutes."
+    }
+  },
+  {
+    "label": "Owner downloads their own data",
+    "request": "GET /api/me/export",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "exported_at": "2026-10-20T11:57:28.231877+00:00",
+      "username": "demo_student",
+      "profile": {
+        "display_name": "Demo Student",
+        "university": "Demo University",
+        "home_country": "Bangladesh",
+        "study_country": "United States",
+        "home_currency": "BDT",
+        "study_currency": "USD",
+        "monthly_support_usd": 400.0,
+        "instalments": [
+          {
+            "label": "Spring tuition",
+            "amount": 3000.0,
+            "currency": "USD",
+            "due": "2026-11-09",
+            "paid": false
+          }
+        ]
+      },
+      "transfers": [
+        {
+          "txn_id": "TXN-42DDFCA8",
+          "ts": "2026-10-20T11:57:27.903241+00:00",
+          "route_id": "digital_transfer",
+          "amount_usd": 3000.0,
+          "fees_usd": 35.0,
+          "currency": "BDT",
+          "debit": 370270.0
+        }
+      ],
+      "note": "Simulated data only. Security audit entries are kept separately."
+    }
+  },
+  {
+    "label": "Account deletion with the wrong password is refused",
+    "request": "POST /api/me/delete",
+    "payload": {
+      "password": "***"
+    },
+    "status": 403,
+    "expected": 403,
+    "body": {
+      "detail": "Wrong password"
+    }
+  },
+  {
+    "label": "Account deletion with the right password succeeds",
+    "request": "POST /api/me/delete",
+    "payload": {
+      "password": "***"
+    },
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "status": "deleted"
+    }
+  },
+  {
+    "label": "A deleted account can no longer log in",
+    "request": "POST /api/auth/login",
+    "payload": {
+      "username": "student_two",
+      "password": "***"
+    },
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Invalid username or password"
+    }
+  },
+  {
+    "label": "Logout ends the session",
+    "request": "POST /api/auth/logout",
+    "payload": null,
+    "status": 200,
+    "expected": 200,
+    "body": {
+      "status": "logged_out"
+    }
+  },
+  {
+    "label": "The old session no longer works",
+    "request": "GET /api/auth/me",
+    "payload": null,
+    "status": 401,
+    "expected": 401,
+    "body": {
+      "detail": "Please log in"
+    }
+  }
+]

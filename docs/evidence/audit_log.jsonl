@@ -1,0 +1,35 @@
+{"ts": "2026-10-20T11:57:27.852323+00:00", "event": "user_registered", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.887354+00:00", "event": "login_ok", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.890671+00:00", "event": "profile_updated", "instalments": 1, "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.896548+00:00", "event": "policy_decision", "tool": "compare_routes", "args": {"amount_usd": 3000.0, "days_available": 17}, "confirmed": false, "allowed": true, "tier": "ADVISE", "reason": "Read/advice actions are allowed", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.899877+00:00", "event": "policy_decision", "tool": "simulate_transfer", "args": {"amount_usd": 3000.0, "route_id": "digital_transfer"}, "confirmed": false, "allowed": false, "tier": "TRANSFER", "reason": "Needs explicit user confirmation first", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.900013+00:00", "event": "tool_call", "tool": "propose_transfer", "args": {"amount_usd": 3000.0, "route_id": "digital_transfer"}, "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.902918+00:00", "event": "user_confirmed", "pending_id": "PEND-B1A58D", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.903079+00:00", "event": "policy_decision", "tool": "simulate_transfer", "args": {"amount_usd": 3000.0, "route_id": "digital_transfer"}, "confirmed": true, "allowed": true, "tier": "TRANSFER", "reason": "Transfer allowed: verified, within limits, confirmed", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.903241+00:00", "event": "transfer_executed", "txn_id": "TXN-42DDFCA8", "route_id": "digital_transfer", "amount_usd": 3000.0, "fees_usd": 35.0, "currency": "BDT", "debit": 370270.0, "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.908913+00:00", "event": "policy_decision", "tool": "simulate_transfer", "args": {"amount_usd": 3000.0, "route_id": "digital_transfer"}, "confirmed": false, "allowed": false, "tier": "BLOCKED", "reason": "Would exceed the daily limit: $3,000 already sent today, limit $5,000", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.908967+00:00", "event": "tool_call", "tool": "propose_transfer", "args": {"amount_usd": 3000.0, "route_id": "digital_transfer"}, "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.910936+00:00", "event": "policy_decision", "tool": "simulate_transfer", "args": {"amount_usd": 9000.0, "route_id": "digital_transfer"}, "confirmed": false, "allowed": false, "tier": "BLOCKED", "reason": "Amount exceeds daily limit of $5,000", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.910986+00:00", "event": "tool_call", "tool": "propose_transfer", "args": {"amount_usd": 9000.0, "route_id": "digital_transfer"}, "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.912800+00:00", "event": "policy_decision", "tool": "simulate_transfer", "args": {"amount_usd": 100.0, "route_id": "invented_route"}, "confirmed": false, "allowed": false, "tier": "BLOCKED", "reason": "Unknown route 'invented_route'", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.912838+00:00", "event": "tool_call", "tool": "propose_transfer", "args": {"amount_usd": 100.0, "route_id": "invented_route"}, "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.914952+00:00", "event": "policy_decision", "tool": "simulate_transfer", "args": {"amount_usd": 500.0, "route_id": "digital_transfer"}, "confirmed": false, "allowed": false, "tier": "TRANSFER", "reason": "Needs explicit user confirmation first", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.915098+00:00", "event": "tool_call", "tool": "propose_transfer", "args": {"amount_usd": 500.0, "route_id": "digital_transfer"}, "user": "demo_student"}
+{"ts": "2026-10-20T11:57:27.947627+00:00", "event": "user_registered", "user": "student_two"}
+{"ts": "2026-10-20T11:57:27.979314+00:00", "event": "login_ok", "user": "student_two"}
+{"ts": "2026-10-20T11:57:27.989113+00:00", "event": "user_cancelled", "pending_id": "PEND-4FEA87", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:28.022088+00:00", "event": "user_registered", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.056288+00:00", "event": "login_ok", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.094653+00:00", "event": "login_failed", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.128256+00:00", "event": "login_failed", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.161705+00:00", "event": "login_failed", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.195058+00:00", "event": "login_failed", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.228060+00:00", "event": "login_failed", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.230181+00:00", "event": "login_blocked", "user": "lockout_user"}
+{"ts": "2026-10-20T11:57:28.231834+00:00", "event": "data_exported", "user": "demo_student"}
+{"ts": "2026-10-20T11:57:28.265377+00:00", "event": "login_failed", "user": "student_two"}
+{"ts": "2026-10-20T11:57:28.298419+00:00", "event": "login_ok", "user": "student_two"}
+{"ts": "2026-10-20T11:57:28.298513+00:00", "event": "logout", "user": "student_two"}
+{"ts": "2026-10-20T11:57:28.298786+00:00", "event": "account_deleted", "user": "student_two"}
+{"ts": "2026-10-20T11:57:28.331209+00:00", "event": "login_failed", "user": "student_two"}
+{"ts": "2026-10-20T11:57:28.333656+00:00", "event": "logout", "user": "demo_student"}
