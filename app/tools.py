@@ -1,12 +1,28 @@
 import json
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
+from app import audit, policy, userctx
+
 DATA = Path(__file__).parent / "data"
+LEDGER = DATA / "ledger.jsonl"      # used when no user is set (tests, scripts)
+LEDGER_DIR = DATA / "ledgers"       # one ledger file per logged-in user
 
 
 def _load(name: str) -> dict:
     with open(DATA / f"{name}.json") as f:
         return json.load(f)
+
+
+def _ledger_path() -> Path:
+    user = userctx.current()
+    if user is None:
+        return LEDGER
+    if not userctx.SAFE_NAME.match(user):
+        raise ValueError("invalid user name")
+    LEDGER_DIR.mkdir(parents=True, exist_ok=True)
+    return LEDGER_DIR / f"{user}.jsonl"
 
 
 def get_balance(currency: str | None = None) -> dict:
@@ -87,18 +103,12 @@ def compare_routes(amount_usd: float, days_available: int | None = None) -> dict
 # ---------------------------------------------------------------
 # Simulated transfers (Tier 2): ledger + policy-guarded execution
 # ---------------------------------------------------------------
-import uuid
-from datetime import datetime, timezone
-
-from app import audit, policy
-
-LEDGER = DATA / "ledger.jsonl"
-
 
 def _read_ledger() -> list[dict]:
-    if not LEDGER.exists():
+    path = _ledger_path()
+    if not path.exists():
         return []
-    with open(LEDGER) as f:
+    with open(path) as f:
         return [json.loads(line) for line in f if line.strip()]
 
 
@@ -138,7 +148,7 @@ def simulate_transfer(amount_usd: float, route_id: str, confirmed: bool = False)
         "currency": "BDT",
         "debit": debit_bdt,
     }
-    with open(LEDGER, "a") as f:
+    with open(_ledger_path(), "a") as f:
         f.write(json.dumps(tx) + "\n")
     audit.log("transfer_executed", **tx)
     return {"status": "completed", **tx}
