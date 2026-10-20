@@ -2,7 +2,7 @@
 
 Competition: 2026 Shenzhen International FinTech Competition (FinTechathon), International Track
 Topic: C, Cross-border and Student Finance Assistant
-Team: [Team name] | [Member names, universities, countries]
+Team: CurrencyBridge | Md. Rasheduzzaman (Team Leader), Md Rakibul Islam, Zahid Hasan, Md. Abidullah; Presidency University, Bangladesh
 Repository: https://github.com/2511254038-rsd/studentfin-agent
 
 > All accounts, exchange rates, fees and providers are simulated. No real money moves and no real bank is connected.
@@ -121,7 +121,7 @@ Known consequence: balance and daily-limit checks read the ledger and then appen
 
 ## 8. Testing
 
-The repository contains 93 automated tests, all passing at the time of writing. They need no API key and no network, and use temporary files so they never touch real data. They cover:
+The repository contains 98 automated tests, all passing at the time of writing. They need no API key and no network, and use temporary files so they never touch real data. They cover:
 - the cost model and deadline selection with known numbers,
 - the permission tiers, default deny, per-route and cumulative limits,
 - the confirmation flow, double-confirm refusal and insufficient funds,

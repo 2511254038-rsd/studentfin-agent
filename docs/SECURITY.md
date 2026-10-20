@@ -1,7 +1,7 @@
 # StudentFin Agent: Security Self-Assessment
 
 Competition: 2026 Shenzhen International FinTech Competition, International Track, Topic C
-Team: [Team name] | Repository: https://github.com/2511254038-rsd/studentfin-agent
+Team: CurrencyBridge | Members: Md. Rasheduzzaman (Team Leader), Md Rakibul Islam, Zahid Hasan, Md. Abidullah; Presidency University, Bangladesh | Repository: https://github.com/2511254038-rsd/studentfin-agent
 
 > Scope: a prototype on simulated data. No real money, no real bank, no real identity documents. This report states what is implemented, how it is tested, and what is not protected.
 

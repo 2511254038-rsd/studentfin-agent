@@ -4,13 +4,7 @@
 
 Submission for the 2026 Shenzhen International FinTech Competition (FinTechathon), International Track, **Topic C: Cross-border and Student Finance Assistant**.
 
-## 👥 Team Members
-
-- **Team Leader:** Md. Rasheduzzaman — Presidency University, Bangladesh
-- **Team Member:** Md. Rakibul Islam — Presidency University, Bangladesh
-- **Team Member:** Zahid Hasan — Presidency University, Bangladesh
-- **Team Member:** Md. Abidullah — Presidency University, Bangladesh
-
+Team: CurrencyBridge | Members: Md. Rasheduzzaman (Team Leader), Md Rakibul Islam, Zahid Hasan, Md. Abidullah; Presidency University, Bangladesh
 
 > **All data is simulated.** Accounts, exchange rates, fees and providers are fictional sample data. No real money moves and no real bank is connected.
 
