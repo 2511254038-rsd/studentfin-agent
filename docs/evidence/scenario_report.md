@@ -1,6 +1,6 @@
 # Execution evidence: StudentFin Agent
 
-Generated: 2026-10-20T11:57:28+00:00
+Generated: 2026-10-20T14:35:46+00:00
 
 Simulated data only. This run used a temporary data folder, made no model calls and moved no real money. It was produced by `scripts/make_evidence.py`, which exercises the real API code and stops if any step behaves differently than expected.
 
@@ -55,7 +55,7 @@ Simulated data only. This run used a temporary data folder, made no model calls 
 | 20 | Second student sees no pending requests | `GET /api/pending` | 200 | {} |
 | 21 | Second student has an untouched balance | `GET /api/balance` | 200 | balance BDT 450,000.00, USD 1,200.00 |
 | 22 | Second student cannot confirm the first student's request | `POST /api/confirm` | 200 | refused: Unknown or expired pending id |
-| 23 | Second student's audit view holds only their own events | `GET /api/audit` | 200 | [{"event": "user_registered", "ts": "2026-10-20T11:57:27.947627+00:00", "user": "student_two"}, {"event": "login_ok", "ts": "2026-10-20T11:5 ... |
+| 23 | Second student's audit view holds only their own events | `GET /api/audit` | 200 | [{"event": "user_registered", "ts": "2026-10-20T14:35:46.575515+00:00", "user": "student_two"}, {"event": "login_ok", "ts": "2026-10-20T14:3 ... |
 | 24 | Owner cancels the $500 request | `POST /api/cancel` | 200 | {"status": "cancelled"} |
 | 25 | Register a student to test lockout | `POST /api/auth/register` | 200 | {"user": "lockout_user"} |
 | 26 | Wrong password, attempt 1 | `POST /api/auth/login` | 401 | Invalid username or password |
@@ -64,7 +64,7 @@ Simulated data only. This run used a temporary data folder, made no model calls 
 | 29 | Wrong password, attempt 4 | `POST /api/auth/login` | 401 | Invalid username or password |
 | 30 | Wrong password, attempt 5 | `POST /api/auth/login` | 401 | Invalid username or password |
 | 31 | Correct password is refused while the account is locked | `POST /api/auth/login` | 429 | Too many failed attempts. Try again in a few minutes. |
-| 32 | Owner downloads their own data | `GET /api/me/export` | 200 | {"exported_at": "2026-10-20T11:57:28.231877+00:00", "note": "Simulated data only. Security audit entries are kept separately.", "profile": { ... |
+| 32 | Owner downloads their own data | `GET /api/me/export` | 200 | {"exported_at": "2026-10-20T14:35:46.837236+00:00", "note": "Simulated data only. Security audit entries are kept separately.", "profile": { ... |
 | 33 | Account deletion with the wrong password is refused | `POST /api/me/delete` | 403 | Wrong password |
 | 34 | Account deletion with the right password succeeds | `POST /api/me/delete` | 200 | {"status": "deleted"} |
 | 35 | A deleted account can no longer log in | `POST /api/auth/login` | 401 | Invalid username or password |

@@ -267,7 +267,7 @@
     "body": {
       "result": {
         "status": "awaiting_user_confirmation",
-        "pending_id": "PEND-B1A58D",
+        "pending_id": "PEND-C691FF",
         "quote": {
           "route_id": "digital_transfer",
           "name": "Digital Transfer Service",
@@ -280,7 +280,7 @@
         }
       },
       "pending": {
-        "PEND-B1A58D": {
+        "PEND-C691FF": {
           "amount_usd": 3000.0,
           "route_id": "digital_transfer"
         }
@@ -302,15 +302,15 @@
     "label": "Owner confirms the transfer",
     "request": "POST /api/confirm",
     "payload": {
-      "pending_id": "PEND-B1A58D"
+      "pending_id": "PEND-C691FF"
     },
     "status": 200,
     "expected": 200,
     "body": {
       "result": {
         "status": "completed",
-        "txn_id": "TXN-42DDFCA8",
-        "ts": "2026-10-20T11:57:27.903241+00:00",
+        "txn_id": "TXN-FCC6445B",
+        "ts": "2026-10-20T14:35:46.534350+00:00",
         "route_id": "digital_transfer",
         "amount_usd": 3000.0,
         "fees_usd": 35.0,
@@ -338,7 +338,7 @@
     "label": "Confirming the same request again is refused",
     "request": "POST /api/confirm",
     "payload": {
-      "pending_id": "PEND-B1A58D"
+      "pending_id": "PEND-C691FF"
     },
     "status": 200,
     "expected": 200,
@@ -416,7 +416,7 @@
     "body": {
       "result": {
         "status": "awaiting_user_confirmation",
-        "pending_id": "PEND-4FEA87",
+        "pending_id": "PEND-5C39EE",
         "quote": {
           "route_id": "digital_transfer",
           "name": "Digital Transfer Service",
@@ -429,7 +429,7 @@
         }
       },
       "pending": {
-        "PEND-4FEA87": {
+        "PEND-5C39EE": {
           "amount_usd": 500.0,
           "route_id": "digital_transfer"
         }
@@ -472,7 +472,7 @@
     "label": "Second student cannot confirm the first student's request",
     "request": "POST /api/confirm",
     "payload": {
-      "pending_id": "PEND-4FEA87"
+      "pending_id": "PEND-5C39EE"
     },
     "status": 200,
     "expected": 200,
@@ -495,12 +495,12 @@
     "expected": 200,
     "body": [
       {
-        "ts": "2026-10-20T11:57:27.947627+00:00",
+        "ts": "2026-10-20T14:35:46.575515+00:00",
         "event": "user_registered",
         "user": "student_two"
       },
       {
-        "ts": "2026-10-20T11:57:27.979314+00:00",
+        "ts": "2026-10-20T14:35:46.605078+00:00",
         "event": "login_ok",
         "user": "student_two"
       }
@@ -510,7 +510,7 @@
     "label": "Owner cancels the $500 request",
     "request": "POST /api/cancel",
     "payload": {
-      "pending_id": "PEND-4FEA87"
+      "pending_id": "PEND-5C39EE"
     },
     "status": 200,
     "expected": 200,
@@ -616,7 +616,7 @@
     "status": 200,
     "expected": 200,
     "body": {
-      "exported_at": "2026-10-20T11:57:28.231877+00:00",
+      "exported_at": "2026-10-20T14:35:46.837236+00:00",
       "username": "demo_student",
       "profile": {
         "display_name": "Demo Student",
@@ -638,8 +638,8 @@
       },
       "transfers": [
         {
-          "txn_id": "TXN-42DDFCA8",
-          "ts": "2026-10-20T11:57:27.903241+00:00",
+          "txn_id": "TXN-FCC6445B",
+          "ts": "2026-10-20T14:35:46.534350+00:00",
           "route_id": "digital_transfer",
           "amount_usd": 3000.0,
           "fees_usd": 35.0,
