@@ -74,12 +74,62 @@
   .hist-del { background:transparent; color:var(--mute); padding:2px 6px; font-size:12px; }
   .hist-del:hover { color:var(--bad); }
   @media (prefers-reduced-motion: reduce) { .typing span { animation:none; opacity:.7; } }
+
+  .auth-overlay { position:fixed; inset:0; z-index:1000; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto; }
+  .auth-card { width:100%; max-width:400px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px; }
+  .auth-card h2 { margin:0 0 4px; }
+  .auth-card label { display:block; margin:12px 0 4px; font-size:13px; color:var(--mute); }
+  .auth-card input:not([type=checkbox]) { width:100%; }
+  .auth-card .check { display:flex; gap:8px; align-items:center; margin-top:14px; }
+  .auth-tabs { display:flex; gap:6px; margin:14px 0 4px; }
+  .auth-tabs button { flex:1; background:transparent; border:1px solid var(--line); color:var(--text); }
+  .auth-tabs button.active { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .pw-row { display:flex; gap:6px; }
+  .pw-row input { flex:1; }
+  .meter { height:6px; background:#101827; border-radius:4px; margin-top:8px; overflow:hidden; }
+  #meter-bar { height:100%; width:0; background:var(--bad); transition:width .2s; }
+  .auth-msg { min-height:20px; margin:10px 0; font-size:13px; color:var(--bad); }
+  .auth-msg.ok { color:var(--ok); }
+  #auth-go { width:100%; padding:10px; }
+  .small { font-size:12px; }
 </style>
 </head>
 <body>
+<div id="auth" class="auth-overlay">
+  <div class="auth-card">
+    <h2>StudentFin Agent</h2>
+    <p class="mute small">Sign in to use your own simulated account. Demo data only, no real money.</p>
+    <div class="auth-tabs">
+      <button type="button" id="tab-login" class="active">Log in</button>
+      <button type="button" id="tab-register">Create account</button>
+    </div>
+    <form id="auth-form" autocomplete="on">
+      <label for="auth-user">Username</label>
+      <input id="auth-user" name="username" autocomplete="username" maxlength="32" required>
+      <label for="auth-pass">Password</label>
+      <div class="pw-row">
+        <input id="auth-pass" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        <button type="button" id="auth-show" class="btn-no">Show</button>
+      </div>
+      <div id="reg-only" class="hidden">
+        <div class="meter"><div id="meter-bar"></div></div>
+        <div id="pw-rules" class="mute small"></div>
+        <label for="auth-pass2">Repeat password</label>
+        <input id="auth-pass2" type="password" autocomplete="new-password" maxlength="128">
+        <label for="auth-invite">Invite code (only if you were given one)</label>
+        <input id="auth-invite" autocomplete="off" maxlength="100">
+      </div>
+      <label class="check"><input type="checkbox" id="auth-shared"> This is a shared computer (do not save chat history)</label>
+      <div id="auth-msg" class="auth-msg" role="alert"></div>
+      <button type="submit" id="auth-go" class="btn-ok">Log in</button>
+    </form>
+    <p class="mute small">Sessions end after 2 hours of inactivity. Passwords are hashed on the server and are never kept in the browser.</p>
+  </div>
+</div>
+
 <header>
   <h1>StudentFin Agent <small class="mute">&nbsp;simulated data only</small></h1>
-  <div><span id="mini" class="mono"></span>&nbsp;&nbsp;<button id="reset" class="btn-no">New chat</button></div>
+  <div><span id="mini" class="mono"></span>&nbsp;&nbsp;<span class="mute">Signed in as <strong id="whoami"></strong></span>&nbsp;&nbsp;<button id="reset" class="btn-no">New chat</button> <button id="logout" class="btn-no">Log out</button></div>
 </header>
 <main>
   <section class="card left">
@@ -145,6 +195,7 @@ async function api(path, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const j = await r.json();
+  if (r.status === 401 && !path.startsWith("/api/auth/")) onSessionEnded();
   if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "Invalid input");
   return j;
 }
@@ -436,15 +487,18 @@ function addThinking() {
 }
 
 /* ---------- chat history (stored in this browser only) ---------- */
-const HKEY = "studentfin_chats_v1";
+let HKEY = "studentfin_chats_anon";
+let sharedDevice = false;
 let convo = {id: String(Date.now()), title: "", ts: Date.now(), msgs: []};
 let viewOnly = false;
 let viewingId = null;
 
 function loadChats() {
+  if (sharedDevice) return [];
   try { return JSON.parse(localStorage.getItem(HKEY) || "[]"); } catch (e) { return []; }
 }
 function saveChats(list) {
+  if (sharedDevice) return;
   try { localStorage.setItem(HKEY, JSON.stringify(list.slice(0, 30))); } catch (e) {}
 }
 
@@ -529,13 +583,156 @@ $("hist-clear").onclick = () => {
 
 renderHistory();
 // A page reload shows an empty chat, so reset the server-side memory to match.
-api("/api/reset", {}).then(() => api("/api/pending")).then(renderPending).catch(() => {});
+
 
 /* ---------- start ---------- */
-addMsg("system", "Ask me about sending money abroad, or use the tabs above. All data here is simulated.");
-api("/api/pending").then(renderPending);
-refreshMini();
-refreshAudit();
+/* ---------- authentication ---------- */
+let me = null;
+let mode = "login";
+
+function authMsg(text, isErr) {
+  const m = $("auth-msg");
+  m.textContent = text || "";
+  m.className = "auth-msg" + (text && !isErr ? " ok" : "");
+}
+
+function passwordProblem(pw, user) {
+  if (pw.length < 10) return "Password must be at least 10 characters.";
+  if (pw.length > 128) return "Password must be at most 128 characters.";
+  if (user && pw.toLowerCase().includes(user.toLowerCase())) return "Password must not contain the username.";
+  if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return "Password must contain letters and digits.";
+  return null;
+}
+
+function updateMeter() {
+  const pw = $("auth-pass").value;
+  const user = $("auth-user").value.trim();
+  const checks = [
+    [pw.length >= 10, "10+ characters"],
+    [/[A-Za-z]/.test(pw) && /[0-9]/.test(pw), "letters and digits"],
+    [!user || !pw.toLowerCase().includes(user.toLowerCase()), "no username inside"],
+    [pw.length >= 14, "14+ characters (stronger)"],
+  ];
+  $("pw-rules").textContent = checks.map(c => (c[0] ? "✓ " : "• ") + c[1]).join("   ");
+  const score = checks.filter(c => c[0]).length;
+  const colors = ["#ef5b5b", "#ef5b5b", "#e0a43a", "#4f8cff", "#34c27a"];
+  $("meter-bar").style.width = (score * 25) + "%";
+  $("meter-bar").style.background = colors[score];
+}
+
+function setMode(m) {
+  mode = m;
+  $("tab-login").classList.toggle("active", m === "login");
+  $("tab-register").classList.toggle("active", m === "register");
+  $("reg-only").classList.toggle("hidden", m !== "register");
+  $("auth-go").textContent = m === "register" ? "Create account" : "Log in";
+  $("auth-pass").setAttribute("autocomplete", m === "register" ? "new-password" : "current-password");
+  authMsg("", false);
+  if (m === "register") updateMeter();
+}
+
+function wipeScreen() {
+  me = null;
+  ["chat", "pending", "trace", "audit", "balance-box", "cmp-out", "fx-box"].forEach(id => { $(id).textContent = ""; });
+  $("mini").textContent = "";
+  $("whoami").textContent = "";
+  $("input").value = "";
+  $("cmp-amount").value = "";
+  $("cmp-days").value = "";
+  $("send-amount").value = "";
+  notice("");
+}
+
+function showLogin(msg) {
+  me = null;
+  $("auth").classList.remove("hidden");
+  setMode("login");
+  $("auth-pass").value = "";
+  $("auth-pass2").value = "";
+  authMsg(msg || "", true);
+  $("auth-user").focus();
+}
+
+function onSessionEnded() {
+  if (!me) return;
+  wipeScreen();
+  showLogin("Your session ended. Please log in again.");
+}
+
+async function enterApp(user) {
+  me = user;
+  HKEY = "studentfin_chats_v1_" + user;
+  $("auth").classList.add("hidden");
+  $("whoami").textContent = user;
+  startNewConvo();
+  $("chat").textContent = "";
+  renderPending({});
+  renderTrace([]);
+  addMsg("system", "Welcome, " + user + ". Ask me about sending money abroad, or use the tabs above. All data here is simulated.");
+  showTab("chat");
+  try {
+    await api("/api/reset", {});
+    renderPending(await api("/api/pending"));
+  } catch (e) {}
+  refreshAll().catch(() => {});
+}
+
+async function submitAuth(e) {
+  e.preventDefault();
+  const user = $("auth-user").value.trim();
+  const pass = $("auth-pass").value;
+  if (!user || !pass) { authMsg("Enter a username and password.", true); return; }
+  if (mode === "register") {
+    const problem = passwordProblem(pass, user);
+    if (problem) { authMsg(problem, true); return; }
+    if (pass !== $("auth-pass2").value) { authMsg("Passwords do not match.", true); return; }
+  }
+  $("auth-go").disabled = true;
+  try {
+    const body = {username: user, password: pass};
+    if (mode === "register") body.invite_code = $("auth-invite").value.trim();
+    const d = await api(mode === "register" ? "/api/auth/register" : "/api/auth/login", body);
+    sharedDevice = $("auth-shared").checked;
+    try { sessionStorage.setItem("sf_shared", sharedDevice ? "1" : "0"); } catch (err) {}
+    $("auth-pass").value = "";
+    $("auth-pass2").value = "";
+    await enterApp(d.user);
+  } catch (err) {
+    authMsg(err.message, true);
+  }
+  $("auth-go").disabled = false;
+}
+
+$("auth-form").addEventListener("submit", submitAuth);
+$("tab-login").onclick = () => setMode("login");
+$("tab-register").onclick = () => setMode("register");
+$("auth-pass").addEventListener("input", () => { if (mode === "register") updateMeter(); });
+$("auth-user").addEventListener("input", () => { if (mode === "register") updateMeter(); });
+$("auth-show").onclick = () => {
+  const f = $("auth-pass");
+  const show = f.type === "password";
+  f.type = show ? "text" : "password";
+  $("auth-show").textContent = show ? "Hide" : "Show";
+};
+$("logout").onclick = async () => {
+  try { await api("/api/auth/logout", {}); } catch (e) {}
+  if (sharedDevice) { try { localStorage.removeItem(HKEY); } catch (e) {} }
+  wipeScreen();
+  showLogin("You have been logged out.");
+};
+
+async function init() {
+  setMode("login");
+  try { sharedDevice = sessionStorage.getItem("sf_shared") === "1"; } catch (e) {}
+  try {
+    const d = await api("/api/auth/me");
+    await enterApp(d.user);
+  } catch (e) {
+    showLogin("");
+    authMsg("", false);
+  }
+}
+init();
 </script>
 </body>
 </html>
